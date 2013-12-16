@@ -149,7 +149,12 @@ class Player(base_player.BasePlayer):
         # Completely random strategy
         # Knowledge about opponent's board is completely ignored
         """
-        return self.getRandPiece()
+        row, col = self.getRandPiece()
+        while True:
+            if self._opponenBoard[row][col] == const.EMPTY:
+                break
+            row, col = self.getRandPiece()
+        return row, col
 
     def setOutcome(self, entry, row, col):
         """
