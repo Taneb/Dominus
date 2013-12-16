@@ -118,3 +118,8 @@ def getRotationFactor(rotation, i):
         return [(x[1],-x[0]) for x in i]
     raise IndexError #it's sort of an index error
 
+def addShip(board, rotation, base, pieces):
+    for piece in pieces:
+        rot_fact = getRotationFactor(rotation, piece)
+        for i in rot_fact:
+            board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
