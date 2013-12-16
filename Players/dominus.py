@@ -98,25 +98,4 @@ class Player(base_player.BasePlayer):
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
-    return Player()import const
-import base_player
-from random import randint
-
-class Player(base_player.BasePlayer): #yay for inconsistencies!
-
-    def __init__(self):
-        base_player.BasePlayer.__init__(self)
-        self._playerName = "Dominus"
-
-        self._playerYear = "1"
-        self._version = "1.0"
-        self._playerDescription = "Dominus is Latin for Overlord. Good luck."
-
-        def deployFleet(self):
-            self._initBoards()
-            
-            #set the locations occupied by each ship to be const.OCCUPIED
-        
-        def chooseMove(self):
-            
-
+    return Player()
