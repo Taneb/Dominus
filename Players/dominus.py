@@ -12,6 +12,20 @@ class Player(base_player.BasePlayer):
         self._version = "1.0"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck."
 
+    def getRandPiece(self):
+        """
+        Get a random piece on the board.
+        """
+        row = randint(0,11)
+        # Board is a weird L shape
+        if row < 6:
+            col = randint(0,5)
+        else:
+            col = randint(0,11)
+        # Return move in row (letter) + col (number) grid reference
+        # e.g. A3 is represented as 0,2
+        return row, col
+
     # Distribute the fleet onto your board
     def deployFleet(self):
         """
@@ -49,16 +63,7 @@ class Player(base_player.BasePlayer):
         # Completely random strategy
         # Knowledge about opponent's board is completely ignored
         """
-        row = randint(0,11)
-        if row<6:
-            # Top half of board, so choose between first and sixth row
-            col = randint(0,5)
-        else:
-            # Bottom half so choose between first and twelfth row
-            col = randint(0,11)
-        # Return move in row (letter) + col (number) grid reference
-        # e.g. A3 is represented as 0,2
-        return row, col
+        return self.getRandPiece()
 
     def setOutcome(self, entry, row, col):
         """
