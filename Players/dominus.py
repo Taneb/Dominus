@@ -33,6 +33,7 @@ class Player(base_player.BasePlayer):
         in the _initBoards method in the file base_player.py
         """
         self._initBoards()
+
         # Simple example which always positions the ships in the same place
         # This is a very bad idea! You will want to do something random
         # Destroyer (2 squares)
@@ -105,3 +106,15 @@ class Player(base_player.BasePlayer):
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
+
+def getRotationFactor(rotation, i):
+    if i == 0:
+        return i
+    if i == 1:
+        return [(x[1],x[0]) for x in i]
+    if i == 2:
+        return [(-x[0],-x[1]) for x in i]
+    if i == 3:
+        return [(x[1],-x[0]) for x in i]
+    raise IndexError #it's sort of an index error
+
