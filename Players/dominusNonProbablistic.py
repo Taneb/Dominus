@@ -6,7 +6,7 @@ class Player(base_player.BasePlayer):
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
-        self._playerName = "Dominus"
+        self._playerName = "DominusNonProbablistic"
         self._playerYear = "1"
         self._version = "Alpha"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
@@ -72,14 +72,6 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
-    shapes = [
-        [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
-        [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
-        [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
-        [( 0,  0), (0,  1), (0,  2)], # Cruiser
-        [( 0,  0), (1,  0)] # Destroyer
-    ]
-
     def deployFleet(self):
         """
         Decide where you want your fleet to be deployed, then return your board.
@@ -91,8 +83,14 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
 
-
-        for ship in self.shapes:
+        shapes = [
+            [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
+            [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
+            [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
+            [( 0,  0), (0,  1), (0,  2)], # Cruiser
+            [( 0,  0), (1,  0)] # Destroyer
+        ]
+        for ship in shapes:
             while True:
                 sp = self.getRandPiece()
                 if self.makeShip(sp, ship):
@@ -123,23 +121,11 @@ class Player(base_player.BasePlayer):
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-            
+
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     return decMv[0], decMv[1]
-                    
-        # failing that, it's probability distribution time.
-        bestProb = 0
-        for x in range(12):
-            for y in range(len(self._opponenBoard[x])):
-                thisProb = 0
-                for shape in self.shapes:
-                    thisProb += self.countPossibilities ((x,y), shape, lambda x: x == const.EMPTY)
-                if thisProb > bestProb:
-                    bestProb = thisProb
-                    decMv = (x,y)
-        return decMv
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
@@ -184,27 +170,6 @@ class Player(base_player.BasePlayer):
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
         return result
-
-
-    def countPossibilities(self, coord, shape, isEmpty):
-        """
-        Count the number of possible ways the given shape could overlap with
-        the given coordinate
-        """
-        count = 0
-        for rotation in range(4):
-            for offset in [self.getRotationFactor(rotation,cell) for cell in shape]:
-                valid = True
-                for cell in shape:
-                    x = coord[0] - offset[0] + cell[0]
-                    y = coord[1] - offset[1] + cell[1]
-                    valid = valid and self.isValidCell((x,y)) and isEmpty(self._opponenBoard[x][y])
-                    if not valid:
-                        break
-                if valid:
-                    count += 1
-        return count
-                    
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""

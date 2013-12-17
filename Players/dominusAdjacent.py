@@ -6,7 +6,7 @@ class Player(base_player.BasePlayer):
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
-        self._playerName = "Dominus"
+        self._playerName = "DominusAdjacent"
         self._playerYear = "1"
         self._version = "Alpha"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
@@ -59,26 +59,14 @@ class Player(base_player.BasePlayer):
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
-            if not success: return False
-
-            for cell in self.circleCell(actual):
-                success = success and (cell in successful or
-                                       (self.isValidCell(cell) and
-                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY))
-            if not success: return False
-
+            if not success:
+                return False
+            # I haven't ported the adjacency checking because I can't be bothered.
+            # see lines 80-84 of main.cpp
             successful.append(actual)
         for coord in successful:
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
-
-    shapes = [
-        [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
-        [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
-        [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
-        [( 0,  0), (0,  1), (0,  2)], # Cruiser
-        [( 0,  0), (1,  0)] # Destroyer
-    ]
 
     def deployFleet(self):
         """
@@ -91,11 +79,17 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
 
-
-        for ship in self.shapes:
+        shapes = [
+            [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
+            [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
+            [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
+            [( 0,  0), (0,  1), (0,  2)], # Cruiser
+            [( 0,  0), (1,  0)] # Destroyer
+        ]
+        for ship in shapes:
             while True:
                 sp = self.getRandPiece()
-                if self.makeShip(sp, ship):
+                if self.makeShip(0, sp,  ship):
                     break
 
         return self._playerBoard
@@ -123,30 +117,17 @@ class Player(base_player.BasePlayer):
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-            
+
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     return decMv[0], decMv[1]
-                    
-        # failing that, it's probability distribution time.
-        bestProb = 0
-        for x in range(12):
-            for y in range(len(self._opponenBoard[x])):
-                thisProb = 0
-                for shape in self.shapes:
-                    thisProb += self.countPossibilities ((x,y), shape, lambda x: x == const.EMPTY)
-                if thisProb > bestProb:
-                    bestProb = thisProb
-                    decMv = (x,y)
-        return decMv
 
         # Failing that, get a random cell (in a diagonal pattern)
-        count = 0
         while (not self.isValidCell(decMv) or
                 self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
             decMv = self.getRandPiece()
-            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
+            if (decMv[0] + decMv[1]) % 2 != 0:
                 decMv = (-1, -1)
 
         assert(self.isValidCell(decMv) and
@@ -185,26 +166,34 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
+    def getRotationFactor(self, rotation, i):
+        if rotation == 0:
+            return i
+        if rotation == 1:
+            return (i[1], i[0])
+        if rotation == 2:
+            return (-i[0], -i[1])
+        if rotation == 3:
+            return (i[1], -i[0])
+        raise IndexError # It's sort of an index error
 
-    def countPossibilities(self, coord, shape, isEmpty):
-        """
-        Count the number of possible ways the given shape could overlap with
-        the given coordinate
-        """
-        count = 0
-        for rotation in range(4):
-            for offset in [self.getRotationFactor(rotation,cell) for cell in shape]:
-                valid = True
-                for cell in shape:
-                    x = coord[0] - offset[0] + cell[0]
-                    y = coord[1] - offset[1] + cell[1]
-                    valid = valid and self.isValidCell((x,y)) and isEmpty(self._opponenBoard[x][y])
-                    if not valid:
-                        break
-                if valid:
-                    count += 1
-        return count
-                    
+    def makeShip(self, count, base, shape):
+        rotation = randint(0, 3)
+        successful = []
+        for coord in shape:
+            rotFact = self.getRotationFactor(rotation, coord)
+            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
+            success = True
+            success = success and self.isValidCell(actual)
+            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
+            if not success:
+                return False
+            # I haven't ported the adjacency checking because I can't be bothered.
+            # see lines 80-84 of main.cpp
+            successful.append(actual)
+        for coord in successful:
+            self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
+        return True
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
