@@ -61,7 +61,7 @@ class Player(base_player.BasePlayer):
             while True:
                 count += 1
                 sp = self.getRandPiece()
-                if self.makeShip(self._playerBoard, count, sp, ship):
+                if self.makeShip(count, sp, ship):
                     break
 
         return self._playerBoard
@@ -139,11 +139,6 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
-    def isValidGridPiece(self,p):
-        if p[0] < 0 or p[1] < 0 or p[0] > 11 or p[1] > 11:
-            return False
-        return not (p[0] < 6 and p[1] > 5)
-
     def getRotationFactor(self,rotation, i):
         if rotation == 0:
             return i
@@ -155,22 +150,22 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
-    def makeShip(self, board, count, base, shape):
+    def makeShip(self, count, base, shape):
         rotation = randint(0, 3)
         successful = []
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
             actual = (coord[0] + base[0], coord[1] + base[1])
             success = True
-            success = success and self.isValidGridPiece(actual)
-            success = success and board[actual[0]][actual[1]] == const.EMPTY
+            success = success and self.isValidCell(actual[0],actual[1])
+            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success:
                 return False
             # I haven't ported the adjacency checking because I can't be bothered.
             # see lines 80-84 of main.cpp
             successful.append(actual)
         for coord in successful:
-            board[coord[0]][coord[1]] = const.OCCUPIED
+            self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
 def getPlayer():
