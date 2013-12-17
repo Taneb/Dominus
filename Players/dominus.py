@@ -56,7 +56,7 @@ class Player(base_player.BasePlayer):
         for ship in shapes:
             while True:
                 sp = self.getRandPiece()
-                if makeShip(self._playerBoard, sp, ship):
+                if makeShip(self._playerBoard, 0, sp, ship):
                     break
 
         # Reset moves each game
@@ -158,7 +158,7 @@ def getRotationFactor(rotation, i):
         return (i[1],-i[0])
     raise IndexError #it's sort of an index error
 
-def makeShip(board, base, shape):
+def makeShip(board, count, base, shape):
     rotation = randint(0,3)
     successful = []
     for coord in shape:
