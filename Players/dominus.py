@@ -66,14 +66,13 @@ class Player(base_player.BasePlayer):
 
         return self._playerBoard
 
-    def circleCell(self, piece, attempt_no):
+    def circleCell(self, piece):
         """
         Rotate around a particular cell on the board.
         """
 
         assert(type(piece) == tuple)
-        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        return (piece[0] + rotate[attempt_no][0]), (piece[1] + rotate[attempt_no][1])
+        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in [(-1, 0), (0, 1), (1, 0), (0, -1)]]
 
 
     # Decide what move to make based on current state of opponent's board and print it out
@@ -91,9 +90,7 @@ class Player(base_player.BasePlayer):
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-
-            for i in xrange(0,4):
-                row, col = self.circleCell(x[0], i)
+            for row, col in self.circleCell(x[0]):
                 if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
                     return row, col
 
