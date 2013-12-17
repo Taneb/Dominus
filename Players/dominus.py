@@ -9,9 +9,9 @@ class Player(base_player.BasePlayer):
         self._playerName = "Dominus"
         self._playerYear = "1"
         self._version = "1.0"
-        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck."
+        self._playerDescription = ""\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn""
 
-        self._moves = []
+        self._moves = [] # Our previous moves
 
     def getRandPiece(self):
         """
@@ -38,7 +38,6 @@ class Player(base_player.BasePlayer):
         if row < 6 and col > 5: return False
         return True
 
-    # Distribute the fleet onto your board
     def deployFleet(self):
         """
         Decide where you want your fleet to be deployed, then return your board.
@@ -47,6 +46,7 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+        # Reset moves each game
         self._moves = []
 
         # Simple example which always positions the ships in the same place
@@ -91,6 +91,8 @@ class Player(base_player.BasePlayer):
 
         row = -1
         col = -1
+
+        # Check previous moves for unchecked cells
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
@@ -100,6 +102,7 @@ class Player(base_player.BasePlayer):
                 if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
                     return row, col
 
+        # Failing that, get a random cell (in a diagonal pattern)
         while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
             if (row + col) % 2 != 0:
