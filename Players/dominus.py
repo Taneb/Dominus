@@ -195,6 +195,27 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
+    def countPossibilities(self, coord, shape, isEmpty):
+        """
+        Count the number of possible ways the given shape could overlap with
+        the given coordinate
+        """
+        count = 0
+        for rotation in range(3):
+            for bx in range(12): #some redundancy here :(
+                for by in range(12):
+                    actualShape = [(x + bx, y + by) for x,y in map(lambda l: self.getRotationFactor(rotation,l), shape)]
+                    if coord in actualShape:
+                        valid = True
+                        for coord in actualShape:
+                            rotFact = self.getRotationFactor(rotation, coord)
+                            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
+                            valid = valid and self.isValidCell(actual)
+                            valid = valid and isEmpty(self._opponenBoard[actual[0]][actual[1]])
+                        if valid:
+                            count += 1
+                    
+
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
