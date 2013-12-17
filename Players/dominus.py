@@ -45,9 +45,10 @@ class Player(base_player.BasePlayer):
         ]
         for ship in shapes:
             while True:
-                sp = getRandomPiece()
+                sp = self.getRandPiece()
                 if makeShip(self._playerBoard, sp, ship):
                     break
+        return self._playerBoard
         
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
@@ -99,11 +100,13 @@ def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
 
+# coord -> bool
 def isValidGridPiece(p):
     if p[0] < 0 or p[1] < 0 or p[0] > 11 or p[1] > 11:
         return False
-    return p[0] >= 6 or p[1] <= 5
+    return not (p[0] < 6 and p[1] > 5)
 
+# int -> coord -> cood
 def getRotationFactor(rotation, i):
     if rotation == 0:
         return i
@@ -115,17 +118,23 @@ def getRotationFactor(rotation, i):
         return (i[1],-i[0])
     raise IndexError #it's sort of an index error
 
-def addShip(board, rotation, base, piece):
-    for i in piece:
-        rot_fact = getRotationFactor(rotation, i)
-        board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
+# board -> int -> coord -> [coord] -> ()
+def addShip(board, rotation, base, shape):
+    for coord in shape:
+        rot_fact = getRotationFactor(rotation, coord)
+        try:
+            board[rot_fact[0] + base[0]][rot_fact[1] + base[1]] = const.OCCUPIED
+        except:
+            print rot_fact, base
+            raise
 
-def makeShip(board, base, pieces):
+# board -> -int- -> coord -> [coord] -> bool
+def makeShip(board, base, shape):
     rotation = randint(0,3)
-    successPieces = []
-    for piece in pieces:
-        rotFact = getRotationFactor(rotation, piece)
-        actual = (piece[0] + base[0], piece[1] + base[1])
+    successful = []
+    for coord in shape:
+        rotFact = getRotationFactor(rotation, coord)
+        actual = (coord[0] + base[0], coord[1] + base[1])
         success = True
         success = success and isValidGridPiece(actual)
         success = success and board[actual[0]][actual[1]] == const.EMPTY
@@ -133,10 +142,7 @@ def makeShip(board, base, pieces):
             return False
         # I haven't ported the adjacency checking because I can't be bothered.
         # see lines 80-84 of main.cpp
-        addShip(board, roataion, base, piece)
-
-def getRandomPiece():
-    while True:
-        res = (randint(0,12), randint(0,12))
-        if isValidGridPiece(res):
-            return res
+        successful.append(actual)
+    for coord in successful:
+        board[coord[0]][coord[1]] = const.OCCUPIED
+    return True
