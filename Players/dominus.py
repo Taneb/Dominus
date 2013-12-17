@@ -17,6 +17,7 @@ class Player(base_player.BasePlayer):
         """
         Get a random piece on the board.
         """
+
         row = randint(0,11)
         # Board is a weird L shape
         if row < 6:
@@ -26,6 +27,16 @@ class Player(base_player.BasePlayer):
         # Return move in row (letter) + col (number) grid reference
         # e.g. A3 is represented as 0,2
         return row, col
+
+    def isValidCell(self, row, col):
+        """
+        Check that a generated cell is valid on the board.
+        """
+
+        if row < 0 or col < 0: return False
+        if row > 11 or col > 11: return False
+        if row < 6 and col > 5: return False
+        return True
 
     # Distribute the fleet onto your board
     def deployFleet(self):
@@ -58,17 +69,39 @@ class Player(base_player.BasePlayer):
         self._playerBoard[10][5]  = const.OCCUPIED
         return self._playerBoard
 
+    def circleCell(self, piece, attempt_no):
+        """
+        Rotate around a particular cell on the board.
+        """
+
+        assert(type(piece) == tuple)
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return (piece[0] + rotate[attempt_no][0]), (piece[1] + rotate[attempt_no][1])
+
+
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
         """
-        Decide what move to make based on current state of opponent's board and return it 
+        Decide what move to make based on current state of opponent's board and return it
         # Completely random strategy
         # Knowledge about opponent's board is completely ignored
         """
 
-        row, col = self.getRandPiece()
-        while self._opponenBoard[row][col] != const.EMPTY:
+        row = -1
+        col = -1
+        for x in reversed(self._moves):
+            if x[1] != const.HIT:
+                continue
+
+            for i in xrange(0,4):
+                row, col = self.circleCell(x[0], i)
+                if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
+                    return row, col
+
+        while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
+
+        assert(self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY)
         return row, col
 
     def setOutcome(self, entry, row, col):
