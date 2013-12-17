@@ -195,7 +195,6 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
-=======
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
