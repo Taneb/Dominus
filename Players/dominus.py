@@ -211,6 +211,8 @@ class Player(base_player.BasePlayer):
                     x = coord[0] - offset[0] + cell[0]
                     y = coord[1] - offset[1] + cell[1]
                     valid = valid and self.isValidCell((x,y)) and isEmpty(self._opponenBoard[x][y])
+                    if not valid:
+                        break
                 if valid:
                     count += 1
         return count
