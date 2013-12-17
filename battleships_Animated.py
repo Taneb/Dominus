@@ -8,7 +8,7 @@ import playerloader
 ##           PARAMETERS SETTING         ##
 ##########################################
 
-rounds = 3    ## Number of rounds per match
+rounds = 10   ## Number of rounds per match
 gridSize = 12 ## size of the board
 
 ## importing players file
@@ -137,8 +137,9 @@ def playGame(gui, firstPlayer, secondPlayer, turn):
     
 ##    print "starting turn is:", turn
     haveWinner = False
+    turn = 0
     while not haveWinner:
-        if turn > 0:
+        if turn % 2 == 0:
             # Make a move by looking at the opponent's board
             i1,i2 = firstPlayer.chooseMove()
             # Ask the user to enter the outcome
@@ -152,7 +153,7 @@ def playGame(gui, firstPlayer, secondPlayer, turn):
             firstPlayer.setOutcome(outcome, i1, i2)
             secondPlayer.getOpponentMove(i1, i2)
             # Show the current board state
-            turn *= -1
+            turn += 1
             haveWinner = checkWinner(player2_board)
 
         else:
@@ -168,9 +169,10 @@ def playGame(gui, firstPlayer, secondPlayer, turn):
             secondPlayer.setOutcome(outcome, i1, i2)
             firstPlayer.getOpponentMove(i1, i2)
             # Show the current board state
-            turn *= -1
+            turn += 1
             haveWinner = checkWinner(player1_board)
 
+    print turn, "turn game."
     winner = "Player 1"
     if turn > 0 :
         winner = "Player 2"
