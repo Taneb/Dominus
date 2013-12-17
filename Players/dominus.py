@@ -166,35 +166,6 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
-    def getRotationFactor(self, rotation, i):
-        if rotation == 0:
-            return i
-        if rotation == 1:
-            return (i[1], i[0])
-        if rotation == 2:
-            return (-i[0], -i[1])
-        if rotation == 3:
-            return (i[1], -i[0])
-        raise IndexError # It's sort of an index error
-
-    def makeShip(self, count, base, shape):
-        rotation = randint(0, 3)
-        successful = []
-        for coord in shape:
-            rotFact = self.getRotationFactor(rotation, coord)
-            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
-            success = True
-            success = success and self.isValidCell(actual)
-            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
-            if not success:
-                return False
-            # I haven't ported the adjacency checking because I can't be bothered.
-            # see lines 80-84 of main.cpp
-            successful.append(actual)
-        for coord in successful:
-            self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
-        return True
-
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
