@@ -57,11 +57,9 @@ class Player(base_player.BasePlayer):
             [( 0,  0), (1,  0)] # Destroyer
         ]
         for ship in shapes:
-            count = 0
             while True:
-                count += 1
                 sp = self.getRandPiece()
-                if self.makeShip(count, sp, ship):
+                if self.makeShip(sp, ship):
                     break
 
         return self._playerBoard
@@ -150,7 +148,7 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
-    def makeShip(self, count, base, shape):
+    def makeShip(self, base, shape):
         rotation = randint(0, 3)
         successful = []
         for coord in shape:
