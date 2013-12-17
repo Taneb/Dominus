@@ -204,7 +204,7 @@ class Player(base_player.BasePlayer):
         the given coordinate
         """
         count = 0
-        for rotation in range(3):
+        for rotation in range(4):
             for offset in [self.getRotationFactor(rotation,cell) for cell in shape]:
                 valid = True
                 for cell in shape:
