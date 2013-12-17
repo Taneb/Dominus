@@ -47,6 +47,8 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+        self._moves = []
+
         # Simple example which always positions the ships in the same place
         # This is a very bad idea! You will want to do something random
         # Destroyer (2 squares)
