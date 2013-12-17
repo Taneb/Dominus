@@ -120,7 +120,7 @@ def addShip(board, rotation, base, piece):
         rot_fact = getRotationFactor(rotation, i)
         board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
 
-def makeShip(board, base, piece):
+def makeShip(board, base, pieces):
     rotation = randInt(0,3)
     successPieces = []
     for piece in pieces:
@@ -133,7 +133,7 @@ def makeShip(board, base, piece):
             return False
         # I haven't ported the adjacency checking because I can't be bothered.
         # see lines 80-84 of main.cpp
-    addShip(board, roataion, base, piece)
+    addShip(board, roataion, base, pieces)
 
 def getRandomPiece():
     while True:
