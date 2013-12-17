@@ -100,6 +100,9 @@ class Player(base_player.BasePlayer):
 
         while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
+            if (row + col) % 2 != 0:
+                row = -1
+                col = -1
 
         assert(self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY)
         return row, col
