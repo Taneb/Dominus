@@ -125,7 +125,7 @@ def makeShip(board, base, pieces):
     successPieces = []
     for piece in pieces:
         rotFact = getRotationFactor(rotation, piece)
-        actual = [(x[0] + base[0], x[1] + base[1]) for x in piece]
+        actual = (piece[0] + base[0], piece[1] + base[1])
         success = True
         success = success and isValidGridPiece(actual)
         success = success and board[actual[0]][actual[1]] == const.EMPTY
@@ -133,7 +133,7 @@ def makeShip(board, base, pieces):
             return False
         # I haven't ported the adjacency checking because I can't be bothered.
         # see lines 80-84 of main.cpp
-    addShip(board, roataion, base, pieces)
+        addShip(board, roataion, base, piece)
 
 def getRandomPiece():
     while True:
