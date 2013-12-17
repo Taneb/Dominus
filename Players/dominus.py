@@ -46,12 +46,15 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+        # Reset moves each game
+        self._moves = []
+
         shapes = [
-            [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
-            [(-1,-1),(1,-1),(0,-1),(0,0),(0,1),(0,2)], # Aircraft Carrier
-            [(0,0),(0,1),(0,2),(0,3)], # Battleship
-            [(0,0),(0,1),(0,2)], # Cruiser
-            [(0,0),(1,0)] # Destroyer
+            [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
+            [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
+            [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
+            [( 0,  0), (0,  1), (0,  2)], # Cruiser
+            [( 0,  0), (1,  0)] # Destroyer
         ]
         for ship in shapes:
             count = 0
@@ -60,9 +63,6 @@ class Player(base_player.BasePlayer):
                 sp = self.getRandPiece()
                 if self.makeShip(self._playerBoard, count, sp, ship):
                     break
-
-        # Reset moves each game
-        self._moves = []
 
         return self._playerBoard
 
@@ -148,15 +148,15 @@ class Player(base_player.BasePlayer):
         if rotation == 0:
             return i
         if rotation == 1:
-            return (i[1],i[0])
+            return (i[1], i[0])
         if rotation == 2:
-            return (-i[0],-i[1])
+            return (-i[0], -i[1])
         if rotation == 3:
-            return (i[1],-i[0])
-        raise IndexError #it's sort of an index error
+            return (i[1], -i[0])
+        raise IndexError # It's sort of an index error
 
     def makeShip(self, board, count, base, shape):
-        rotation = randint(0,3)
+        rotation = randint(0, 3)
         successful = []
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
