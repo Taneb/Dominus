@@ -105,13 +105,13 @@ def isValidGridPiece(p):
     return p[0] >= 6 or p[1] <= 5
 
 def getRotationFactor(rotation, i):
-    if i == 0:
+    if rotation == 0:
         return i
-    if i == 1:
+    if rotation == 1:
         return (i[1],i[0])
-    if i == 2:
+    if rotation == 2:
         return (-i[0],-i[1])
-    if i == 3:
+    if rotation == 3:
         return (i[1],-i[0])
     raise IndexError #it's sort of an index error
 
