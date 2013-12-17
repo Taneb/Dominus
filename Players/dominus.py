@@ -36,6 +36,8 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+        
+
         # Simple example which always positions the ships in the same place
         # This is a very bad idea! You will want to do something random
         # Destroyer (2 squares)
@@ -143,3 +145,9 @@ def makeShip(board,, base, piece):
         # I haven't ported the adjacency checking because I can't be bothered.
         # see lines 80-84 of main.cpp
     addShip(board, roataion, base, piece)
+
+def getRandomPiece():
+    while True:
+        res = (randInt(0,12), randInt(0,12))
+        if isValidGridPiece(res):
+            return res
