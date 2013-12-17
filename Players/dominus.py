@@ -60,13 +60,13 @@ class Player(base_player.BasePlayer):
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success: return False
-            
+
             for cell in self.circleCell(actual):
                 success = success and (cell in successful or
                                        (self.isValidCell(cell) and
                                         self._playerBoard[cell[0]][cell[1]] == const.EMPTY))
             if not success: return False
-            
+
             successful.append(actual)
         for coord in successful:
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
@@ -128,10 +128,11 @@ class Player(base_player.BasePlayer):
                     return decMv[0], decMv[1]
 
         # Failing that, get a random cell (in a diagonal pattern)
+        count = 0
         while (not self.isValidCell(decMv) or
                 self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
             decMv = self.getRandPiece()
-            if (decMv[0] + decMv[1]) % 2 != 0:
+            if cout < 50 and (decMv[0] + decMv[1]) % 2 != 0:
                 decMv = (-1, -1)
 
         assert(self.isValidCell(decMv) and
