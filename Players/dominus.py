@@ -89,7 +89,7 @@ class Player(base_player.BasePlayer):
         for ship in shapes:
             while True:
                 sp = self.getRandPiece()
-                if self.makeShip(sp, ship):
+                if self.makeShip(0, sp,  ship):
                     break
 
         return self._playerBoard
@@ -166,7 +166,7 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
-    def getRotationFactor(self,rotation, i):
+    def getRotationFactor(self, rotation, i):
         if rotation == 0:
             return i
         if rotation == 1:
@@ -184,7 +184,7 @@ class Player(base_player.BasePlayer):
             rotFact = self.getRotationFactor(rotation, coord)
             actual = (rotFact[0] + base[0], rotFact[1] + base[1])
             success = True
-            success = success and self.isValidCell(actual[0],actual[1])
+            success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success:
                 return False
