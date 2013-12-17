@@ -59,10 +59,14 @@ class Player(base_player.BasePlayer):
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
-            if not success:
-                return False
-            # I haven't ported the adjacency checking because I can't be bothered.
-            # see lines 80-84 of main.cpp
+            if not success: return False
+            
+            for cell in self.circleCell(actual):
+                success = success and (cell in successful or
+                                       (self.isValidCell(cell) and
+                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY))
+            if not success: return False
+            
             successful.append(actual)
         for coord in successful:
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
@@ -89,7 +93,7 @@ class Player(base_player.BasePlayer):
         for ship in shapes:
             while True:
                 sp = self.getRandPiece()
-                if self.makeShip(0, sp,  ship):
+                if self.makeShip(sp, ship):
                     break
 
         return self._playerBoard
