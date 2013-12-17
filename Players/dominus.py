@@ -9,7 +9,7 @@ class Player(base_player.BasePlayer):
         self._playerName = "Dominus"
         self._playerYear = "1"
         self._version = "1.0"
-        self._playerDescription = ""\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn""
+        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
         self._moves = [] # Our previous moves
 
