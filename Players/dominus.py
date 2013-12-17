@@ -26,16 +26,46 @@ class Player(base_player.BasePlayer):
             col = randint(0,11)
         # Return move in row (letter) + col (number) grid reference
         # e.g. A3 is represented as 0,2
-        return row, col
+        return (row, col)
 
-    def isValidCell(self, row, col):
+    def isValidCell(self, cell):
         """
         Check that a generated cell is valid on the board.
         """
 
-        if row < 0 or col < 0: return False
-        if row > 11 or col > 11: return False
-        if row < 6 and col > 5: return False
+        assert(type(cell) == tuple)
+        if cell[0] < 0  or cell[1] < 0:  return False
+        if cell[0] > 11 or cell[1] > 11: return False
+        if cell[0] < 6 and cell[1] > 5:  return False
+        return True
+
+    def getRotationFactor(self,rotation, i):
+        if rotation == 0:
+            return i
+        if rotation == 1:
+            return (i[1], i[0])
+        if rotation == 2:
+            return (-i[0], -i[1])
+        if rotation == 3:
+            return (i[1], -i[0])
+        raise IndexError # It's sort of an index error
+
+    def makeShip(self, base, shape):
+        rotation = randint(0, 3)
+        successful = []
+        for coord in shape:
+            rotFact = self.getRotationFactor(rotation, coord)
+            actual = (coord[0] + base[0], coord[1] + base[1])
+            success = True
+            success = success and self.isValidCell(actual)
+            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
+            if not success:
+                return False
+            # I haven't ported the adjacency checking because I can't be bothered.
+            # see lines 80-84 of main.cpp
+            successful.append(actual)
+        for coord in successful:
+            self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
     def deployFleet(self):
@@ -57,11 +87,9 @@ class Player(base_player.BasePlayer):
             [( 0,  0), (1,  0)] # Destroyer
         ]
         for ship in shapes:
-            count = 0
             while True:
-                count += 1
                 sp = self.getRandPiece()
-                if self.makeShip(count, sp, ship):
+                if self.makeShip(sp, ship):
                     break
 
         return self._playerBoard
@@ -72,8 +100,8 @@ class Player(base_player.BasePlayer):
         """
 
         assert(type(piece) == tuple)
-        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in [(-1, 0), (0, 1), (1, 0), (0, -1)]]
-
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
 
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
@@ -83,26 +111,28 @@ class Player(base_player.BasePlayer):
         # Knowledge about opponent's board is completely ignored
         """
 
-        row = -1
-        col = -1
+        decMv = (-1, -1)
 
         # Check previous moves for unchecked cells
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-            for row, col in self.circleCell(x[0]):
-                if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
-                    return row, col
+
+            for decMv in self.circleCell(x[0]):
+                if (self.isValidCell(decMv) and
+                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
+                    return decMv[0], decMv[1]
 
         # Failing that, get a random cell (in a diagonal pattern)
-        while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
-            row, col = self.getRandPiece()
-            if (row + col) % 2 != 0:
-                row = -1
-                col = -1
+        while (not self.isValidCell(decMv) or
+                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
+            decMv = self.getRandPiece()
+            if (decMv[0] + decMv[1]) % 2 != 0:
+                decMv = (-1, -1)
 
-        assert(self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY)
-        return row, col
+        assert(self.isValidCell(decMv) and
+                self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
+        return decMv[0], decMv[1]
 
     def setOutcome(self, entry, row, col):
         """
@@ -165,6 +195,7 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
+=======
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
