@@ -26,16 +26,17 @@ class Player(base_player.BasePlayer):
             col = randint(0,11)
         # Return move in row (letter) + col (number) grid reference
         # e.g. A3 is represented as 0,2
-        return row, col
+        return (row, col)
 
-    def isValidCell(self, row, col):
+    def isValidCell(self, cell):
         """
         Check that a generated cell is valid on the board.
         """
 
-        if row < 0 or col < 0: return False
-        if row > 11 or col > 11: return False
-        if row < 6 and col > 5: return False
+        assert(type(cell) == tuple)
+        if cell[0] < 0  or cell[1] < 0:  return False
+        if cell[0] > 11 or cell[1] > 11: return False
+        if cell[0] < 6 and cell[1] > 5:  return False
         return True
 
     def getRotationFactor(self,rotation, i):
@@ -56,7 +57,7 @@ class Player(base_player.BasePlayer):
             rotFact = self.getRotationFactor(rotation, coord)
             actual = (coord[0] + base[0], coord[1] + base[1])
             success = True
-            success = success and self.isValidCell(actual[0],actual[1])
+            success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success:
                 return False
@@ -100,7 +101,7 @@ class Player(base_player.BasePlayer):
 
         assert(type(piece) == tuple)
         rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        return (piece[0] + rotate[attempt_no][0]), (piece[1] + rotate[attempt_no][1])
+        return (piece[0] + rotate[attempt_no][0], piece[1] + rotate[attempt_no][1])
 
 
     # Decide what move to make based on current state of opponent's board and print it out
@@ -111,8 +112,7 @@ class Player(base_player.BasePlayer):
         # Knowledge about opponent's board is completely ignored
         """
 
-        row = -1
-        col = -1
+        decMv = (-1, -1)
 
         # Check previous moves for unchecked cells
         for x in reversed(self._moves):
@@ -120,19 +120,21 @@ class Player(base_player.BasePlayer):
                 continue
 
             for i in xrange(0,4):
-                row, col = self.circleCell(x[0], i)
-                if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
-                    return row, col
+                decMv = self.circleCell(x[0], i)
+                if (self.isValidCell(decMv) and
+                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
+                    return decMv[0], decMv[1]
 
         # Failing that, get a random cell (in a diagonal pattern)
-        while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
-            row, col = self.getRandPiece()
-            if (row + col) % 2 != 0:
-                row = -1
-                col = -1
+        while (not self.isValidCell(decMv) or
+                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
+            decMv = self.getRandPiece()
+            if (decMv[0] + decMv[1]) % 2 != 0:
+                decMv = (-1, -1)
 
-        assert(self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY)
-        return row, col
+        assert(self.isValidCell(decMv) and
+                self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
+        return decMv[0], decMv[1]
 
     def setOutcome(self, entry, row, col):
         """
