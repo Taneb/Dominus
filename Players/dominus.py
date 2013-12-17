@@ -36,30 +36,19 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+        shapes = [
+            [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
+            [(-1,-1),(1,-1),(0,-1),(0,0)(0,1)(0,2)], # Aircraft Carrier
+            [(0,0),(0,1),(0,2),(0,3)], # Battleship
+            [(0,0),(0,1),(0,2)] # Cruiser
+            [(0,0),(1,0)] # Destroyer
+        ]
+        for ship in shapes:
+            while True:
+                sp = getRandomPiece()
+                if makeShip(self._playerBoards, sp, ship):
+                    break
         
-
-        # Simple example which always positions the ships in the same place
-        # This is a very bad idea! You will want to do something random
-        # Destroyer (2 squares)
-        self._playerBoard[0][5] = const.OCCUPIED
-        self._playerBoard[1][5] = const.OCCUPIED
-        # Cruiser (3 squares)
-        self._playerBoard[1][1:4] = [const.OCCUPIED] * 3
-        # Battleship (4 squares)
-        self._playerBoard[6][6] = const.OCCUPIED
-        self._playerBoard[6][7] = const.OCCUPIED
-        self._playerBoard[6][8] = const.OCCUPIED
-        self._playerBoard[6][9] = const.OCCUPIED
-        # Hovercraft (6 squares)
-        self._playerBoard[8][2]      = const.OCCUPIED
-        self._playerBoard[9][1:4]    = [const.OCCUPIED] * 3
-        self._playerBoard[10][1:4:2] = [const.OCCUPIED] * 2
-        # Aircraft carrier (6 squares)
-        self._playerBoard[9][5:9] = [const.OCCUPIED] * 4
-        self._playerBoard[8][5]   = const.OCCUPIED
-        self._playerBoard[10][5]  = const.OCCUPIED
-        return self._playerBoard
-
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
         """
