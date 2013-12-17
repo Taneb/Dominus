@@ -40,7 +40,7 @@ class Player(base_player.BasePlayer):
             [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
             [(-1,-1),(1,-1),(0,-1),(0,0),(0,1),(0,2)], # Aircraft Carrier
             [(0,0),(0,1),(0,2),(0,3)], # Battleship
-            [(0,0),(0,1),(0,2)] # Cruiser
+            [(0,0),(0,1),(0,2)], # Cruiser
             [(0,0),(1,0)] # Destroyer
         ]
         for ship in shapes:
