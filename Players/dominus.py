@@ -46,7 +46,6 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
-<<<<<<< HEAD
         shapes = [
             [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
             [(-1,-1),(1,-1),(0,-1),(0,0),(0,1),(0,2)], # Aircraft Carrier
@@ -61,7 +60,6 @@ class Player(base_player.BasePlayer):
                     break
         return self._playerBoard
         
-=======
         # Reset moves each game
         self._moves = []
 
@@ -97,7 +95,6 @@ class Player(base_player.BasePlayer):
         return (piece[0] + rotate[attempt_no][0]), (piece[1] + rotate[attempt_no][1])
 
 
->>>>>>> f1e9d7d8cb49c5c71e491063e948523b48589d91
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
         """
