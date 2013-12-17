@@ -128,7 +128,7 @@ class Player(base_player.BasePlayer):
         # failing that, it's probability distribution time.
         bestProb = 0
         for x in range(12):
-            for y in range(12):
+            for y in range(len(self._opponenBoard[x])):
                 thisProb = 0
                 for shape in self.shapes:
                     thisProb += self.countPossibilities ((x,y), shape, lambda x: x == const.EMPTY)
