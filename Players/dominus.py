@@ -68,6 +68,14 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
+    shapes = [
+        [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
+        [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
+        [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
+        [( 0,  0), (0,  1), (0,  2)], # Cruiser
+        [( 0,  0), (1,  0)] # Destroyer
+    ]
+
     def deployFleet(self):
         """
         Decide where you want your fleet to be deployed, then return your board.
@@ -79,14 +87,8 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
 
-        shapes = [
-            [(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)], # Hovercraft
-            [(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)], # Aircraft Carrier
-            [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
-            [( 0,  0), (0,  1), (0,  2)], # Cruiser
-            [( 0,  0), (1,  0)] # Destroyer
-        ]
-        for ship in shapes:
+
+        for ship in self.shapes:
             while True:
                 sp = self.getRandPiece()
                 if self.makeShip(0, sp,  ship):
@@ -117,22 +119,23 @@ class Player(base_player.BasePlayer):
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-
+            
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     return decMv[0], decMv[1]
-
-        # Failing that, get a random cell (in a diagonal pattern)
-        while (not self.isValidCell(decMv) or
-                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
-            decMv = self.getRandPiece()
-            if (decMv[0] + decMv[1]) % 2 != 0:
-                decMv = (-1, -1)
-
-        assert(self.isValidCell(decMv) and
-                self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
-        return decMv[0], decMv[1]
+                    
+        # failing that, it's probability distribution time.
+        bestProb = 0
+        for x in range(12):
+            for y in range(12):
+                thisProb = 0
+                for shape in self.shapes:
+                    thisProb += self.countPossibilities ((x,y), shape, lambda x: x == const.EMPTY)
+                if thisProb > bestProb:
+                    bestProb = thisProb
+                    decMv = (x,y)
+        return decMv
 
     def setOutcome(self, entry, row, col):
         """
@@ -207,13 +210,12 @@ class Player(base_player.BasePlayer):
                     actualShape = [(x + bx, y + by) for x,y in map(lambda l: self.getRotationFactor(rotation,l), shape)]
                     if coord in actualShape:
                         valid = True
-                        for coord in actualShape:
-                            rotFact = self.getRotationFactor(rotation, coord)
-                            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
+                        for actual in actualShape:
                             valid = valid and self.isValidCell(actual)
                             valid = valid and isEmpty(self._opponenBoard[actual[0]][actual[1]])
                         if valid:
                             count += 1
+        return count
                     
 
 def getPlayer():
