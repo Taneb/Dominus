@@ -65,9 +65,7 @@ class Player(base_player.BasePlayer):
         # Knowledge about opponent's board is completely ignored
         """
         row, col = self.getRandPiece()
-        while True:
-            if self._opponenBoard[row][col] == const.EMPTY:
-                break
+        while self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
         return row, col
 
