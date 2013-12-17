@@ -38,7 +38,7 @@ class Player(base_player.BasePlayer):
 
         shapes = [
             [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
-            [(-1,-1),(1,-1),(0,-1),(0,0)(0,1)(0,2)], # Aircraft Carrier
+            [(-1,-1),(1,-1),(0,-1),(0,0),(0,1),(0,2)], # Aircraft Carrier
             [(0,0),(0,1),(0,2),(0,3)], # Battleship
             [(0,0),(0,1),(0,2)] # Cruiser
             [(0,0),(1,0)] # Destroyer
@@ -120,7 +120,7 @@ def addShip(board, rotation, base, piece):
         rot_fact = getRotationFactor(rotation, i)
         board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
 
-def makeShip(board,, base, piece):
+def makeShip(board, base, piece):
     rotation = randInt(0,3)
     successPieces = []
     for piece in pieces:
@@ -129,7 +129,7 @@ def makeShip(board,, base, piece):
         success = True
         success = success and isValidGridPiece(actual)
         success = success and board[actual[0]][actual[1]] == const.EMPTY
-        if not success
+        if not success:
             return False
         # I haven't ported the adjacency checking because I can't be bothered.
         # see lines 80-84 of main.cpp
