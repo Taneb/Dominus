@@ -54,9 +54,11 @@ class Player(base_player.BasePlayer):
             [(0,0),(1,0)] # Destroyer
         ]
         for ship in shapes:
+            count = 0
             while True:
+                count += 1
                 sp = self.getRandPiece()
-                if makeShip(self._playerBoard, 0, sp, ship):
+                if makeShip(self._playerBoard, count, sp, ship):
                     break
 
         # Reset moves each game
