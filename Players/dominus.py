@@ -11,6 +11,8 @@ class Player(base_player.BasePlayer):
         self._version = "1.0"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck."
 
+        self._moves = []
+
     def getRandPiece(self):
         """
         Get a random piece on the board.
@@ -84,6 +86,7 @@ class Player(base_player.BasePlayer):
         else:
             raise Exception("Invalid input!")
         self._opponenBoard[row][col]=Outcome
+        self._moves.append(((row, col), Outcome))
 
     def getOpponentMove(self, row, col):
         """ You might like to keep track of where your opponent
