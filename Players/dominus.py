@@ -58,31 +58,10 @@ class Player(base_player.BasePlayer):
                 sp = self.getRandPiece()
                 if makeShip(self._playerBoard, sp, ship):
                     break
-        return self._playerBoard
-        
+
         # Reset moves each game
         self._moves = []
 
-        # Simple example which always positions the ships in the same place
-        # This is a very bad idea! You will want to do something random
-        # Destroyer (2 squares)
-        self._playerBoard[0][5] = const.OCCUPIED
-        self._playerBoard[1][5] = const.OCCUPIED
-        # Cruiser (3 squares)
-        self._playerBoard[1][1:4] = [const.OCCUPIED] * 3
-        # Battleship (4 squares)
-        self._playerBoard[6][6] = const.OCCUPIED
-        self._playerBoard[6][7] = const.OCCUPIED
-        self._playerBoard[6][8] = const.OCCUPIED
-        self._playerBoard[6][9] = const.OCCUPIED
-        # Hovercraft (6 squares)
-        self._playerBoard[8][2]      = const.OCCUPIED
-        self._playerBoard[9][1:4]    = [const.OCCUPIED] * 3
-        self._playerBoard[10][1:4:2] = [const.OCCUPIED] * 2
-        # Aircraft carrier (6 squares)
-        self._playerBoard[9][5:9] = [const.OCCUPIED] * 4
-        self._playerBoard[8][5]   = const.OCCUPIED
-        self._playerBoard[10][5]  = const.OCCUPIED
         return self._playerBoard
 
     def circleCell(self, piece, attempt_no):
@@ -163,13 +142,11 @@ def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
 
-# coord -> bool
 def isValidGridPiece(p):
     if p[0] < 0 or p[1] < 0 or p[0] > 11 or p[1] > 11:
         return False
     return not (p[0] < 6 and p[1] > 5)
 
-# int -> coord -> cood
 def getRotationFactor(rotation, i):
     if rotation == 0:
         return i
@@ -181,17 +158,6 @@ def getRotationFactor(rotation, i):
         return (i[1],-i[0])
     raise IndexError #it's sort of an index error
 
-# board -> int -> coord -> [coord] -> ()
-def addShip(board, rotation, base, shape):
-    for coord in shape:
-        rot_fact = getRotationFactor(rotation, coord)
-        try:
-            board[rot_fact[0] + base[0]][rot_fact[1] + base[1]] = const.OCCUPIED
-        except:
-            print rot_fact, base
-            raise
-
-# board -> -int- -> coord -> [coord] -> bool
 def makeShip(board, base, shape):
     rotation = randint(0,3)
     successful = []
