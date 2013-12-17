@@ -46,7 +46,7 @@ class Player(base_player.BasePlayer):
         for ship in shapes:
             while True:
                 sp = getRandomPiece()
-                if makeShip(self._playerBoards, sp, ship):
+                if makeShip(self._playerBoard, sp, ship):
                     break
         
     # Decide what move to make based on current state of opponent's board and print it out
@@ -121,7 +121,7 @@ def addShip(board, rotation, base, piece):
         board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
 
 def makeShip(board, base, pieces):
-    rotation = randInt(0,3)
+    rotation = randint(0,3)
     successPieces = []
     for piece in pieces:
         rotFact = getRotationFactor(rotation, piece)
@@ -137,6 +137,6 @@ def makeShip(board, base, pieces):
 
 def getRandomPiece():
     while True:
-        res = (randInt(0,12), randInt(0,12))
+        res = (randint(0,12), randint(0,12))
         if isValidGridPiece(res):
             return res
