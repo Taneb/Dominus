@@ -107,19 +107,38 @@ def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
     return Player()
 
+def isValidGridPiece(p):
+    if p[0] < 0 or p[1] < 0 or p[0] > 11 or p[1] > 11:
+        return False
+    return p[0] >= 6 or p[1] <= 5
+
 def getRotationFactor(rotation, i):
     if i == 0:
         return i
     if i == 1:
-        return [(x[1],x[0]) for x in i]
+        return (i[1],i[0])
     if i == 2:
-        return [(-x[0],-x[1]) for x in i]
+        return (-i[0],-i[1])
     if i == 3:
-        return [(x[1],-x[0]) for x in i]
+        return (i[1],-i[0])
     raise IndexError #it's sort of an index error
 
-def addShip(board, rotation, base, pieces):
+def addShip(board, rotation, base, piece):
+    for i in piece:
+        rot_fact = getRotationFactor(rotation, i)
+        board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
+
+def makeShip(board,, base, piece):
+    rotation = randInt(0,3)
+    successPieces = []
     for piece in pieces:
-        rot_fact = getRotationFactor(rotation, piece)
-        for i in rot_fact:
-            board[i[0] + base[0]][i[1] + base[1]] = const.OCCUPIED
+        rotFact = getRotationFactor(rotation, piece)
+        actual = [(x[0] + base[0], x[1] + base[1]) for x in piece]
+        success = True
+        success = success and isValidGridPiece(actual)
+        success = success and board[actual[0]][actual[1]] == const.EMPTY
+        if not success
+            return False
+        # I haven't ported the adjacency checking because I can't be bothered.
+        # see lines 80-84 of main.cpp
+    addShip(board, roataion, base, piece)
