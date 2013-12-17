@@ -132,7 +132,7 @@ class Player(base_player.BasePlayer):
         while (not self.isValidCell(decMv) or
                 self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
             decMv = self.getRandPiece()
-            if cout < 50 and (decMv[0] + decMv[1]) % 2 != 0:
+            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
                 decMv = (-1, -1)
 
         assert(self.isValidCell(decMv) and
