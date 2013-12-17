@@ -205,16 +205,14 @@ class Player(base_player.BasePlayer):
         """
         count = 0
         for rotation in range(3):
-            for bx in range(12): #some redundancy here :(
-                for by in range(12):
-                    actualShape = [(x + bx, y + by) for x,y in map(lambda l: self.getRotationFactor(rotation,l), shape)]
-                    if coord in actualShape:
-                        valid = True
-                        for actual in actualShape:
-                            valid = valid and self.isValidCell(actual)
-                            valid = valid and isEmpty(self._opponenBoard[actual[0]][actual[1]])
-                        if valid:
-                            count += 1
+            for offset in [self.getRotationFactor(rotation,cell) for cell in shape]:
+                valid = True
+                for cell in shape:
+                    x = coord[0] - offset[0] + cell[0]
+                    y = coord[1] - offset[1] + cell[1]
+                    valid = valid and self.isValidCell((x,y)) and isEmpty(self._opponenBoard[x][y])
+                if valid:
+                    count += 1
         return count
                     
 
