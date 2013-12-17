@@ -39,7 +39,7 @@ class Player(base_player.BasePlayer):
         if cell[0] < 6 and cell[1] > 5:  return False
         return True
 
-    def getRotationFactor(self,rotation, i):
+    def getRotationFactor(self, rotation, i):
         if rotation == 0:
             return i
         if rotation == 1:
