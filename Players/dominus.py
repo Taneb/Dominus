@@ -11,6 +11,8 @@ class Player(base_player.BasePlayer):
         self._version = "1.0"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck."
 
+        self._moves = []
+
     def getRandPiece(self):
         """
         Get a random piece on the board.
@@ -37,23 +39,23 @@ class Player(base_player.BasePlayer):
         # Simple example which always positions the ships in the same place
         # This is a very bad idea! You will want to do something random
         # Destroyer (2 squares)
-        self._playerBoard[0][5]=const.OCCUPIED
-        self._playerBoard[1][5]=const.OCCUPIED
+        self._playerBoard[0][5] = const.OCCUPIED
+        self._playerBoard[1][5] = const.OCCUPIED
         # Cruiser (3 squares)
-        self._playerBoard[1][1:4]=[const.OCCUPIED]*3
+        self._playerBoard[1][1:4] = [const.OCCUPIED] * 3
         # Battleship (4 squares)
-        self._playerBoard[6][6]=const.OCCUPIED
-        self._playerBoard[6][7]=const.OCCUPIED
-        self._playerBoard[6][8]=const.OCCUPIED
-        self._playerBoard[6][9]=const.OCCUPIED
+        self._playerBoard[6][6] = const.OCCUPIED
+        self._playerBoard[6][7] = const.OCCUPIED
+        self._playerBoard[6][8] = const.OCCUPIED
+        self._playerBoard[6][9] = const.OCCUPIED
         # Hovercraft (6 squares)
-        self._playerBoard[8][2]=const.OCCUPIED
-        self._playerBoard[9][1:4]=[const.OCCUPIED]*3
-        self._playerBoard[10][1:4:2]=[const.OCCUPIED]*2
+        self._playerBoard[8][2]      = const.OCCUPIED
+        self._playerBoard[9][1:4]    = [const.OCCUPIED] * 3
+        self._playerBoard[10][1:4:2] = [const.OCCUPIED] * 2
         # Aircraft carrier (6 squares)
-        self._playerBoard[9][5:9]=[const.OCCUPIED]*4
-        self._playerBoard[8][5]=const.OCCUPIED
-        self._playerBoard[10][5]=const.OCCUPIED
+        self._playerBoard[9][5:9] = [const.OCCUPIED] * 4
+        self._playerBoard[8][5]   = const.OCCUPIED
+        self._playerBoard[10][5]  = const.OCCUPIED
         return self._playerBoard
 
     # Decide what move to make based on current state of opponent's board and print it out
@@ -63,10 +65,9 @@ class Player(base_player.BasePlayer):
         # Completely random strategy
         # Knowledge about opponent's board is completely ignored
         """
+
         row, col = self.getRandPiece()
-        while True:
-            if self._opponenBoard[row][col] == const.EMPTY:
-                break
+        while self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
         return row, col
 
@@ -84,23 +85,23 @@ class Player(base_player.BasePlayer):
             Outcome = const.MISSED
         else:
             raise Exception("Invalid input!")
-        self._opponenBoard[row][col]=Outcome
+        self._opponenBoard[row][col] = Outcome
+        self._moves.append(((row, col), Outcome))
 
     def getOpponentMove(self, row, col):
         """ You might like to keep track of where your opponent
         has missed, but here we just acknowledge it. Note case A3 is
         represented as row = 0, col = 2.
         """
-        if ((self._playerBoard[row][col]==const.OCCUPIED)
-            or (self._playerBoard[row][col]==const.HIT)):
+        if ((self._playerBoard[row][col] == const.OCCUPIED)
+            or (self._playerBoard[row][col] == const.HIT)):
             # They may (stupidly) hit the same square twice so we check for occupied or hit
-            self._playerBoard[row][col]=const.HIT
-            result =const.HIT
+            self._playerBoard[row][col] = const.HIT
+            result = const.HIT
         else:
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
         return result
-
 
 
 def getPlayer():
