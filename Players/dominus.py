@@ -8,15 +8,16 @@ class Player(base_player.BasePlayer):
         base_player.BasePlayer.__init__(self)
         self._playerName = "Dominus"
         self._playerYear = "1"
-        self._version = "1.0"
-        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck."
+        self._version = "Alpha"
+        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
-        self._moves = []
+        self._moves = [] # Our previous moves
 
     def getRandPiece(self):
         """
         Get a random piece on the board.
         """
+
         row = randint(0,11)
         # Board is a weird L shape
         if row < 6:
@@ -27,7 +28,16 @@ class Player(base_player.BasePlayer):
         # e.g. A3 is represented as 0,2
         return row, col
 
-    # Distribute the fleet onto your board
+    def isValidCell(self, row, col):
+        """
+        Check that a generated cell is valid on the board.
+        """
+
+        if row < 0 or col < 0: return False
+        if row > 11 or col > 11: return False
+        if row < 6 and col > 5: return False
+        return True
+
     def deployFleet(self):
         """
         Decide where you want your fleet to be deployed, then return your board.
@@ -36,6 +46,7 @@ class Player(base_player.BasePlayer):
         """
         self._initBoards()
 
+<<<<<<< HEAD
         shapes = [
             [(-1,0),(0,0),(0,-1),(0,1),(1,-1),(1,1)], # Hovercraft
             [(-1,-1),(1,-1),(0,-1),(0,0),(0,1),(0,2)], # Aircraft Carrier
@@ -50,17 +61,72 @@ class Player(base_player.BasePlayer):
                     break
         return self._playerBoard
         
+=======
+        # Reset moves each game
+        self._moves = []
+
+        # Simple example which always positions the ships in the same place
+        # This is a very bad idea! You will want to do something random
+        # Destroyer (2 squares)
+        self._playerBoard[0][5] = const.OCCUPIED
+        self._playerBoard[1][5] = const.OCCUPIED
+        # Cruiser (3 squares)
+        self._playerBoard[1][1:4] = [const.OCCUPIED] * 3
+        # Battleship (4 squares)
+        self._playerBoard[6][6] = const.OCCUPIED
+        self._playerBoard[6][7] = const.OCCUPIED
+        self._playerBoard[6][8] = const.OCCUPIED
+        self._playerBoard[6][9] = const.OCCUPIED
+        # Hovercraft (6 squares)
+        self._playerBoard[8][2]      = const.OCCUPIED
+        self._playerBoard[9][1:4]    = [const.OCCUPIED] * 3
+        self._playerBoard[10][1:4:2] = [const.OCCUPIED] * 2
+        # Aircraft carrier (6 squares)
+        self._playerBoard[9][5:9] = [const.OCCUPIED] * 4
+        self._playerBoard[8][5]   = const.OCCUPIED
+        self._playerBoard[10][5]  = const.OCCUPIED
+        return self._playerBoard
+
+    def circleCell(self, piece, attempt_no):
+        """
+        Rotate around a particular cell on the board.
+        """
+
+        assert(type(piece) == tuple)
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return (piece[0] + rotate[attempt_no][0]), (piece[1] + rotate[attempt_no][1])
+
+
+>>>>>>> f1e9d7d8cb49c5c71e491063e948523b48589d91
     # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
         """
-        Decide what move to make based on current state of opponent's board and return it 
+        Decide what move to make based on current state of opponent's board and return it
         # Completely random strategy
         # Knowledge about opponent's board is completely ignored
         """
 
-        row, col = self.getRandPiece()
-        while self._opponenBoard[row][col] != const.EMPTY:
+        row = -1
+        col = -1
+
+        # Check previous moves for unchecked cells
+        for x in reversed(self._moves):
+            if x[1] != const.HIT:
+                continue
+
+            for i in xrange(0,4):
+                row, col = self.circleCell(x[0], i)
+                if self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY:
+                    return row, col
+
+        # Failing that, get a random cell (in a diagonal pattern)
+        while (not self.isValidCell(row, col)) or self._opponenBoard[row][col] != const.EMPTY:
             row, col = self.getRandPiece()
+            if (row + col) % 2 != 0:
+                row = -1
+                col = -1
+
+        assert(self.isValidCell(row, col) and self._opponenBoard[row][col] == const.EMPTY)
         return row, col
 
     def setOutcome(self, entry, row, col):
