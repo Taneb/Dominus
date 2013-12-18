@@ -62,9 +62,9 @@ class Player(base_player.BasePlayer):
             if not success: return False
 
             for cell in self.circleCell(actual):
-                success = success and (cell in successful or
-                                       (self.isValidCell(cell) and
-                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY))
+                success = success and (not self.isValidCell(cell) or
+                                       cell in successful or
+                                       self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
             if not success: return False
 
             successful.append(actual)
