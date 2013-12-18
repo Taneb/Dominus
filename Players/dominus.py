@@ -18,12 +18,9 @@ class Player(base_player.BasePlayer):
         Get a random piece on the board.
         """
 
-        row = randint(0,11)
+        row = randint(0, 11)
         # Board is a weird L shape
-        if row < 6:
-            col = randint(0,5)
-        else:
-            col = randint(0,11)
+        col = randint(0, 5 if row < 6 else 11)
         # Return move in row (letter) + col (number) grid reference
         # e.g. A3 is represented as 0,2
         return (row, col)
@@ -126,7 +123,7 @@ class Player(base_player.BasePlayer):
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
-                    return decMv[0], decMv[1]
+                    return decMv
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
@@ -138,7 +135,7 @@ class Player(base_player.BasePlayer):
 
         assert(self.isValidCell(decMv) and
                 self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
-        return decMv[0], decMv[1]
+        return decMv
 
     def setOutcome(self, entry, row, col):
         """
