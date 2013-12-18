@@ -50,6 +50,14 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
+    def circleCell(self, piece):
+        """
+        Rotate around a particular cell on the board.
+        """
+        assert(type(piece) == tuple)
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+
     def makeShip(self, base, shape):
         rotation = randint(0, 3)
         successful = []
@@ -99,13 +107,25 @@ class Player(base_player.BasePlayer):
 
         return self._playerBoard
 
-    def circleCell(self, piece):
+    def countPossibilities(self, coord, shape, isEmpty):
         """
-        Rotate around a particular cell on the board.
+        Count the number of possible ways the given shape could overlap with
+        the given coordinate
         """
-        assert(type(piece) == tuple)
-        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+        count = 0
+        for rotation in xrange(4):
+            for offset in [self.getRotationFactor(rotation, cell) for cell in shape]:
+                valid = True
+                for cell in shape:
+                    x = coord[0] - offset[0] + cell[0]
+                    y = coord[1] - offset[1] + cell[1]
+                    valid = valid and (self.isValidCell((x, y)) and
+                            isEmpty(self._opponenBoard[x][y]))
+                    if not valid:
+                        break
+                if valid:
+                    count += 1
+        return count
 
     def chooseMove(self):
         """
@@ -180,26 +200,6 @@ class Player(base_player.BasePlayer):
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
         return result
-
-    def countPossibilities(self, coord, shape, isEmpty):
-        """
-        Count the number of possible ways the given shape could overlap with
-        the given coordinate
-        """
-        count = 0
-        for rotation in xrange(4):
-            for offset in [self.getRotationFactor(rotation, cell) for cell in shape]:
-                valid = True
-                for cell in shape:
-                    x = coord[0] - offset[0] + cell[0]
-                    y = coord[1] - offset[1] + cell[1]
-                    valid = valid and (self.isValidCell((x, y)) and
-                            isEmpty(self._opponenBoard[x][y]))
-                    if not valid:
-                        break
-                if valid:
-                    count += 1
-        return count
 
 
 def getPlayer():
