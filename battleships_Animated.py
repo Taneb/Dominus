@@ -174,7 +174,7 @@ def playGame(gui, firstPlayer, secondPlayer, turn):
 
     print turn, "turn game."
     winner = "Player 1"
-    if turn > 0 :
+    if turn % 2 == 0:
         winner = "Player 2"
         result = (0,1)
     else:
