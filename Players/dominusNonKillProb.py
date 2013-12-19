@@ -6,7 +6,7 @@ class Player(base_player.BasePlayer):
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
-        self._playerName = "Dominus"
+        self._playerName = "DominusNonKillProb"
         self._playerYear = "1"
         self._version = "Alpha"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
@@ -18,9 +18,12 @@ class Player(base_player.BasePlayer):
         Get a random piece on the board.
         """
 
-        row = randint(0, 11)
+        row = randint(0,11)
         # Board is a weird L shape
-        col = randint(0, 5 if row < 6 else 11)
+        if row < 6:
+            col = randint(0,5)
+        else:
+            col = randint(0,11)
         # Return move in row (letter) + col (number) grid reference
         # e.g. A3 is represented as 0,2
         return (row, col)
@@ -47,14 +50,6 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
-    def circleCell(self, piece):
-        """
-        Rotate around a particular cell on the board.
-        """
-        assert(type(piece) == tuple)
-        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
-
     def makeShip(self, base, shape):
         rotation = randint(0, 3)
         successful = []
@@ -67,9 +62,9 @@ class Player(base_player.BasePlayer):
             if not success: return False
 
             for cell in self.circleCell(actual):
-                success = success and (not self.isValidCell(cell) or
-                                       cell in successful or
-                                       self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
+                success = success and (cell in successful or
+                                       (self.isValidCell(cell) and
+                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY))
             if not success: return False
 
             successful.append(actual)
@@ -96,6 +91,7 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
 
+
         for ship in self.shapes:
             while True:
                 sp = self.getRandPiece()
@@ -104,57 +100,58 @@ class Player(base_player.BasePlayer):
 
         return self._playerBoard
 
-    def countPossibilities(self, coord, shape, isEmpty):
+    def circleCell(self, piece):
         """
-        Count the number of possible ways the given shape could overlap with
-        the given coordinate
+        Rotate around a particular cell on the board.
         """
-        count = 0
-        for rotation in xrange(4):
-            for offset in [self.getRotationFactor(rotation, cell) for cell in shape]:
-                valid = True
-                for cell in shape:
-                    x = coord[0] - offset[0] + cell[0]
-                    y = coord[1] - offset[1] + cell[1]
-                    valid = valid and (self.isValidCell((x, y)) and
-                            isEmpty(self._opponenBoard[x][y]))
-                    if not valid:
-                        break
-                if valid:
-                    count += 1
-        return count
 
+        assert(type(piece) == tuple)
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+
+    # Decide what move to make based on current state of opponent's board and print it out
     def chooseMove(self):
         """
         Decide what move to make based on current state of opponent's board and return it
+        # Completely random strategy
+        # Knowledge about opponent's board is completely ignored
         """
+
         decMv = (-1, -1)
 
         # Check previous moves for unchecked cells
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-
+            
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
-                    return decMv
-
-        # Failing that, it's probability distribution time.
+                    return decMv[0], decMv[1]
+                    
+        # failing that, it's probability distribution time.
         bestProb = 0
         for x in range(12):
             for y in range(len(self._opponenBoard[x])):
                 thisProb = 0
                 for shape in self.shapes:
-                    thisProb += self.countPossibilities((x, y), shape,
-                            lambda x: x == const.EMPTY)
+                    thisProb += self.countPossibilities ((x,y), shape, lambda x: x == const.EMPTY)
                 if thisProb > bestProb:
                     bestProb = thisProb
-                    decMv = (x, y)
+                    decMv = (x,y)
+        return decMv
+
+        # Failing that, get a random cell (in a diagonal pattern)
+        count = 0
+        while (not self.isValidCell(decMv) or
+                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
+            decMv = self.getRandPiece()
+            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
+                decMv = (-1, -1)
 
         assert(self.isValidCell(decMv) and
                 self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
-        return decMv
+        return decMv[0], decMv[1]
 
     def setOutcome(self, entry, row, col):
         """
@@ -174,8 +171,7 @@ class Player(base_player.BasePlayer):
         self._moves.append(((row, col), Outcome))
 
     def getOpponentMove(self, row, col):
-        """
-        You might like to keep track of where your opponent
+        """ You might like to keep track of where your opponent
         has missed, but here we just acknowledge it. Note case A3 is
         represented as row = 0, col = 2.
         """
@@ -189,6 +185,26 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
+
+    def countPossibilities(self, coord, shape, isEmpty):
+        """
+        Count the number of possible ways the given shape could overlap with
+        the given coordinate
+        """
+        count = 0
+        for rotation in range(4):
+            for offset in [self.getRotationFactor(rotation,cell) for cell in shape]:
+                valid = True
+                for cell in shape:
+                    x = coord[0] - offset[0] + cell[0]
+                    y = coord[1] - offset[1] + cell[1]
+                    valid = valid and self.isValidCell((x,y)) and isEmpty(self._opponenBoard[x][y])
+                    if not valid:
+                        break
+                if valid:
+                    count += 1
+        return count
+                    
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
