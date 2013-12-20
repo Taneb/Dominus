@@ -50,6 +50,14 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
+    def rotateShip(self, ship, i):
+        rotatedShip = []
+        for cell in ship:
+            rotatedShip.append(self.getRotationFactor(i, cell))
+        
+        assert(len(ship) == len(rotatedShip))
+        return rotatedShip
+
     def circleCell(self, piece):
         """
         Rotate around a particular cell on the board.
@@ -86,6 +94,30 @@ class Player(base_player.BasePlayer):
         [( 0,  0), (0,  1), (0,  2), (0, 3)], # Battleship
         [( 0,  0), (0,  1), (0,  2)], # Cruiser
         [( 0,  0), (1,  0)] # Destroyer
+    ]
+
+    allships = [
+        [( 0,  0), ( 1,  0), ( 1,  1), ( 1,  2), ( 0,  2), ( 2,  1)], # Hovercraft
+        [(-1,  0), ( 0,  0), ( 0,  1), ( 0,  2), (-1,  2), ( 1,  1)], # Hovercraft
+        [(-1, -1), ( 0, -1), ( 0,  0), ( 0,  1), (-1,  1), ( 1,  0)], # Hovercraft
+        [(-1, -2), ( 0, -2), ( 0, -1), ( 0,  0), (-1,  0), ( 1, -1)], # Hovercraft
+        [( 0, -2), ( 1, -2), ( 1, -1), ( 1,  0), ( 0,  0), ( 2, -1)], # Hovercraft
+        [(-2, -1), (-1, -1), (-1,  0), (-1,  1), (-2,  1), ( 0,  0)], # Hovercraft
+        [( 0,  0), ( 0,  1), ( 0,  2), ( 0,  3), ( 1,  0), (-1,  0)], # Aircraft Carrier
+        [( 0, -1), ( 0,  0), ( 0,  1), ( 0,  2), ( 1, -1), (-1, -1)], # Aircraft Carrier
+        [( 0, -2), ( 0, -1), ( 0,  0), ( 0,  1), ( 1, -2), (-1, -2)], # Aircraft Carrier
+        [( 0, -3), ( 0, -2), ( 0, -1), ( 0,  0), ( 1, -3), (-1, -3)], # Aircraft Carrier
+        [(-1,  0), (-1,  1), (-1,  2), (-1,  3), ( 0,  0), (-2,  0)], # Aircraft Carrier
+        [( 1,  0), ( 1,  1), ( 1,  2), ( 1,  3), ( 2,  0), ( 0,  0)], # Aircraft Carrier
+        [( 0,  0), ( 0,  1), ( 0,  2), ( 0,  3)], # Battleship
+        [( 0, -1), ( 0,  0), ( 0,  1), ( 0,  2)], # Battleship
+        [( 0, -2), ( 0, -1), ( 0,  0), ( 0,  1)], # Battleship
+        [( 0, -3), ( 0, -2), ( 0, -1), ( 0,  0)], # Battleship
+        [( 0,  0), ( 0,  1), ( 0,  2)], # Cruiser
+        [( 0, -1), ( 0,  0), ( 0,  1)], # Cruiser
+        [( 0, -2), ( 0, -1), ( 0,  0)], # Cruiser
+        [( 0,  0), ( 0,  1)], # Destroyer
+        [( 0, -1), ( 0,  0)], # Destroyer
     ]
 
     def deployFleet(self):
@@ -134,27 +166,61 @@ class Player(base_player.BasePlayer):
         decMv = (-1, -1)
 
         # Check previous moves for unchecked cells
-        for x in reversed(self._moves):
+        for x in reversed(self._moves[-6:]):
             if x[1] != const.HIT:
                 continue
+            bestcount = 0
+            bestship = None
+            for shipnum, ship in enumerate(self.allships):
+                count = 0
+                rotation = 0
+                for rotation in xrange(4):
+                    valid = True
+                    for cell in self.rotateShip(ship, rotation):
+                        actualcell = (x[0][0] + cell[0], x[0][1] + cell[1])
+                        if (not self.isValidCell(actualcell) or
+                                self._opponenBoard[actualcell[0]][actualcell[1]] == const.MISSED):
+                            valid = False
+                            break
+                    if not valid:
+                        continue
+                    
+                    print "shipnum", shipnum, "rotation", rotation
+       #             raw_input("waiting..")
+                    for cell in self.rotateShip(ship, rotation):
+                        actualcell = (x[0][0] + cell[0], x[0][1] + cell[1])
+                        if (self.isValidCell(actualcell) and
+                            self._opponenBoard[actualcell[0]][actualcell[1]] == const.EMPTY):
+                            return actualcell
+             #   if count >= bestcount:
+             #       bestcount = count
+             #       bestship = self.rotateShip(ship, rotation)
 
-            for decMv in self.circleCell(x[0]):
-                if (self.isValidCell(decMv) and
-                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
-                    return decMv[0], decMv[1]
+           # for cell in bestship:
+           #     actualcell = (x[0][0] + cell[0], x[0][1] + cell[1])
+           #     if (self.isValidCell(actualcell) and
+           #         self._opponenBoard[actualcell[0]][actualcell[1]] == const.EMPTY):
+           #         return actualcell
+
+          #  for decMv in self.circleCell(x[0]):
+          #      if (self.isValidCell(decMv) and
+          #              self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
+          #          return decMv
 
         # Failing that, it's probability distribution time.
-        bestProb = 0
+        bestProb = -1
         for x in range(12):
             for y in range(len(self._opponenBoard[x])):
+                if self._opponenBoard[x][y] != const.EMPTY: continue
                 thisProb = 0
-                for shape in self.shapes:
+                for shape in self.allships:
                     thisProb += self.countPossibilities((x, y), shape,
                             lambda x: x == const.EMPTY)
                 if thisProb > bestProb:
                     bestProb = thisProb
                     decMv = (x, y)
 
+        if decMv[0] == -1: print "AAAAAhhh"
         assert(self.isValidCell(decMv) and
                 self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
         return decMv
