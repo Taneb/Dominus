@@ -68,11 +68,16 @@ class Player(base_player.BasePlayer):
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success: return False
 
+            # Try not to connect ships together
+            count = 0
             for cell in self.circleCell(actual):
                 success = success and (not self.isValidCell(cell) or
                                        cell in successful or
                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
-            if not success: return False
+                count += 1
+
+            # Don't bother trying to separate ships if it's too hard
+            if not success and count < 200: return False
 
             successful.append(actual)
         for coord in successful:
