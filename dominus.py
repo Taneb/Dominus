@@ -2,8 +2,6 @@ import const
 import base_player
 from random import randint
 
-CHECKED_HIT = 5 # would be nice if we could add this to const
-
 class Player(base_player.BasePlayer):
 
     def __init__(self):
@@ -135,37 +133,33 @@ class Player(base_player.BasePlayer):
 
     def analyzeHitRegion(self, ps):
         def findAnswer(remPoints, toTestShips, toDelShips):
-            assert (toDelShips is not None)
-            if toTestShips:
-                if remPoints:
-                    thisShip0 = toTestShips.pop()
+            if toTestShips and remPoints:
+                thisShip0 = toTestShips.pop()
 
-                    res = [(remPoints, toTestShips[:], toDelShips[:])]
+                res = [(remPoints, toTestShips[:], toDelShips[:])]
                     
-                    for direction in range(4):
-                        thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
+                for direction in range(4):
+                    thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
 
-                        for point in remPoints:
-                            for offset in thisShip:
-                                willBeTaken = {(point[0] - offset[0] + p[0], point[1] - offset[1] + p[1]) for p in thisShip}
+                    for point in remPoints:
+                        for offset in thisShip:
+                            willBeTaken = {(point[0] - offset[0] + p[0], point[1] - offset[1] + p[1]) for p in thisShip}
 
-                                if willBeTaken <= remPoints:
-                                    nextToDelShips = toDelShips[:]
-                                    nextToDelShips.append(thisShip0)
-                                    res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
-                    return [fin for n in res for fin in findAnswer(n[0],n[1],n[2])]
-                else:
-                    return [toDelShips]
+                            if willBeTaken <= remPoints:
+                                nextToDelShips = toDelShips[:]
+                                nextToDelShips.append(thisShip0)
+                                res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
+                return [fin for n in res for fin in findAnswer(n[0], n[1], n[2])]
+
+            else if toTestShips and not remPoints:
+                return [toDelShips]
+
+            else if not toTestShips and remPoints:
+                return []
             else:
-
-                if remPoints:
-                    return []
-                else:
-                    return [toDelShips]
+                return [toDelShips]
 
         ans = findAnswer(ps, self.shapes[:], [])
-        
-
         return ans[0]
 
     def chooseMove(self):
@@ -177,19 +171,16 @@ class Player(base_player.BasePlayer):
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
         if hitRegion:
-
             # Check previous moves for unchecked cells
-            for decMv in [c for x in hitRegion  for c in self.circleCell(x)]:
+            for decMv in [c for x in hitRegion for c in self.circleCell(x)]:
                 if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
                     return decMv
 
-            # otherwise stop looking for those shapes
+            # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
-
                 self.shapes.remove(toDel)
 
-            # reset _moves because we've checked all the hits we care about.
-
+            # Reset _moves because we've checked all the hits we care about.
             self._moves = []
 
         # Failing that, it's probability distribution time.
