@@ -124,6 +124,33 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
+    def analyzeHitRegion(ps):
+        def findAnswer(remPoints, toTestShips, toDelShips):
+            if remShips:
+                if remPoints:
+                    thisShip0 = toTestShip.pop()
+
+                    res = [(remPoints, toTestShip, toDelShips)]
+                    
+                    for direction in range(4):
+                        thisShip = {self.getRotationFactor(rotation, toRot) for toRot in thisShip0}
+
+                        for point in remPoints:
+                            for offset in thisShip:
+                                willBeTaken = {point - offset + p for p in thisShip}
+
+                                if willBeTaken <= remPoints:
+                                    res.append((remPoints - willBeTaken, toTestShip, toDelShips.append(thisShip)))
+                    return [fin for fin in findAnswer(n[0],n[1],n[2]) for n in res]
+                else:
+                    return [toDelShips]
+            else:
+
+                if remPoints:
+                    return []
+                else:
+                    return toDelShips
+
     def chooseMove(self):
         """
         Decide what move to make based on current state of opponent's board and return it
