@@ -79,13 +79,7 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
-    shapes = [
-        frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
-        frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
-        frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
-        frozenset([( 0,  0), (0,  1), (0,  2)]), # Cruiser
-        frozenset([( 0,  0), (1,  0)]) # Destroyer
-    ]
+ 
 
     def deployFleet(self):
         """
@@ -97,6 +91,14 @@ class Player(base_player.BasePlayer):
 
         # Reset moves each game
         self._moves = []
+
+        self.shapes = [
+            frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
+            frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
+            frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
+            frozenset([( 0,  0), (0,  1), (0,  2)]), # Cruiser
+            frozenset([( 0,  0), (1,  0)]) # Destroyer
+        ]
 
         for ship in self.shapes:
             while True:
@@ -133,7 +135,7 @@ class Player(base_player.BasePlayer):
                 if remPoints:
                     thisShip0 = toTestShips.pop()
 
-                    res = [(remPoints, toTestShips, toDelShips)]
+                    res = [(remPoints, toTestShips[:], toDelShips[:])]
                     
                     for direction in range(4):
                         thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
@@ -143,8 +145,9 @@ class Player(base_player.BasePlayer):
                                 willBeTaken = {(point[0] - offset[0] + p[0], point[1] - offset[1] + p[1]) for p in thisShip}
 
                                 if willBeTaken <= remPoints:
-                                    res.append((remPoints - willBeTaken, toTestShips, toDelShips.append(thisShip0)))
-                    print "\n\n\n", res
+                                    nextToDelShips = toDelShips[:]
+                                    nextToDelShips.append(thisShip0)
+                                    res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
                     return [fin for n in res for fin in findAnswer(n[0],n[1],n[2])]
                 else:
                     return [toDelShips]
@@ -153,9 +156,11 @@ class Player(base_player.BasePlayer):
                 if remPoints:
                     return []
                 else:
-                    return toDelShips
+                    return [toDelShips]
 
-        ans = findAnswer(ps, self.shapes, [])
+        ans = findAnswer(ps, self.shapes[:], [])
+        
+
         return ans[0]
 
     def chooseMove(self):
@@ -174,8 +179,8 @@ class Player(base_player.BasePlayer):
                     return decMv
 
             # otherwise stop looking for those shapes
-
             for toDel in self.analyzeHitRegion(hitRegion):
+
                 self.shapes.remove(toDel)
 
             # reset _moves because we've checked all the hits we care about.
