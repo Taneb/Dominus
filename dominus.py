@@ -152,6 +152,15 @@ class Player(base_player.BasePlayer):
                     bestProb = thisProb
                     decMv = (x, y)
 
+
+        # Failing that, get a random cell (in a diagonal pattern)
+        count = 0
+        while (not self.isValidCell(decMv) or
+                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
+            decMv = self.getRandPiece()
+            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
+                decMv = (-1, -1)
+
         assert(self.isValidCell(decMv) and
                 self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
         return decMv
