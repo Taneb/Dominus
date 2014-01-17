@@ -2,6 +2,8 @@ import const
 import base_player
 from random import randint
 
+CHECKED_HIT = 5 # would be nice if we could add this to const
+
 class Player(base_player.BasePlayer):
 
     def __init__(self):
@@ -124,24 +126,26 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
-    def analyzeHitRegion(ps):
+    def analyzeHitRegion(self, ps):
         def findAnswer(remPoints, toTestShips, toDelShips):
-            if remShips:
+            assert (toDelShips is not None)
+            if toTestShips:
                 if remPoints:
-                    thisShip0 = toTestShip.pop()
+                    thisShip0 = toTestShips.pop()
 
-                    res = [(remPoints, toTestShip, toDelShips)]
+                    res = [(remPoints, toTestShips, toDelShips)]
                     
                     for direction in range(4):
-                        thisShip = {self.getRotationFactor(rotation, toRot) for toRot in thisShip0}
+                        thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
 
                         for point in remPoints:
                             for offset in thisShip:
-                                willBeTaken = {point - offset + p for p in thisShip}
+                                willBeTaken = {(point[0] - offset[0] + p[0], point[1] - offset[1] + p[1]) for p in thisShip}
 
                                 if willBeTaken <= remPoints:
-                                    res.append((remPoints - willBeTaken, toTestShip, toDelShips.append(thisShip)))
-                    return [fin for fin in findAnswer(n[0],n[1],n[2]) for n in res]
+                                    res.append((remPoints - willBeTaken, toTestShips, toDelShips.append(thisShip0)))
+                    print "\n\n\n", res
+                    return [fin for n in res for fin in findAnswer(n[0],n[1],n[2])]
                 else:
                     return [toDelShips]
             else:
@@ -151,21 +155,32 @@ class Player(base_player.BasePlayer):
                 else:
                     return toDelShips
 
+        ans = findAnswer(ps, self.shapes, [])
+        return ans[0]
+
     def chooseMove(self):
         """
         Decide what move to make based on current state of opponent's board and return it
         """
         decMv = (-1, -1)
 
-        # Check previous moves for unchecked cells
-        for x in reversed(self._moves):
-            if x[1] != const.HIT:
-                continue
+        hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
-            for decMv in self.circleCell(x[0]):
-                if (self.isValidCell(decMv) and
-                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
+        if hitRegion:
+
+            # Check previous moves for unchecked cells
+            for decMv in [c for x in hitRegion  for c in self.circleCell(x)]:
+                if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
                     return decMv
+
+            # otherwise stop looking for those shapes
+
+            for toDel in self.analyzeHitRegion(hitRegion):
+                self.shapes.remove(toDel)
+
+            # reset _moves because we've checked all the hits we care about.
+
+            self._moves = []
 
         # Failing that, it's probability distribution time.
         bestProb = 0
