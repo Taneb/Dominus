@@ -178,10 +178,35 @@ class Player(base_player.BasePlayer):
             # we should do something else
             
             # Check previous moves for unchecked cells
+
+            border = set()
+
             for decMv in [c for x in hitRegion for c in self.circleCell(x)]:
                 if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
-                    return decMv
+                    border.add(decMv)
 
+            borderScores = dict.fromKeys(border, 0)
+
+            for fulcrum in hitRegion:
+                for shapePreRot in shapes:
+                    shapePreAlign = {getRotationFactor(orientation, coord) for orientation in range(0,4) for coord in shapePreRot}
+
+                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAligin}
+
+                    if hitRegion <= shape:
+                        for coord in shape:
+                            if coord in border:
+                                borderScores[coord] += 1
+
+            best = max(borderScores.items, key = lambda kvpair: kvpair[1])
+
+            if best[1]:
+                return best[0]
+                
+            # otherwise it's time to check the "More than one ship case"
+
+            # TODO: more than one ship case
+            
             # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
                 self.shapes.remove(toDel)
