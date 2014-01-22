@@ -185,20 +185,20 @@ class Player(base_player.BasePlayer):
                 if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
                     border.add(decMv)
 
-            borderScores = dict.fromKeys(border, 0)
+            borderScores = dict.fromkeys(border, 0)
 
             for fulcrum in hitRegion:
-                for shapePreRot in shapes:
-                    shapePreAlign = {getRotationFactor(orientation, coord) for orientation in range(0,4) for coord in shapePreRot}
+                for shapePreRot in self.shapes:
+                    shapePreAlign = {self.getRotationFactor(orientation, coord) for orientation in range(0,4) for coord in shapePreRot}
 
-                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAligin}
+                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
 
                     if hitRegion <= shape:
                         for coord in shape:
                             if coord in border:
                                 borderScores[coord] += 1
             try:
-                best = max(borderScores.items, key = lambda kvpair: kvpair[1])
+                best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
 
                 if best[1]:
                     return best[0]
@@ -213,17 +213,17 @@ class Player(base_player.BasePlayer):
                 if remaining:
                     if toCover:
                         shapePreRot = remaining.pop()
-                        scores = helperFunction(toCover, scores, remaining[:])
+                        scores = helperFunction(toCover, covered, scores, remaining[:])
                         
                         for fulcrum in toCover:
-                            shapePreAlign = {getRotationFactor(orientation, coord) for orientation in range(4) for coord in shapePreRot}
+                            shapePreAlign = {self.getRotationFactor(orientation, coord) for orientation in range(4) for coord in shapePreRot}
                             shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
                             
                             for coord in shape:
-                                if not (self._opponenBoard[coord[0]][coord[1]] == const.EMTPY or coord in toCover) and coord not in covered:
+                                if not self.isValidCell(coord) or not (self._opponenBoard[coord[0]][coord[1]] == const.EMPTY or coord in toCover) and coord not in covered:
                                     return scores
 
-                            scores = helperFunction(toCover - shape, covered + shape, scores, remaining[:])
+                            scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
                             return scores
                     else:
                         # nothing left to cover, great!
@@ -243,10 +243,10 @@ class Player(base_player.BasePlayer):
                                 scores[coord] += 1
                         return scores
                         
-            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), shapes[:])
+            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
 
             try:
-                best = max(borderScores.items, key = lambda kvpair: kvpair[1])
+                best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
                 if best[1]:
                     return best[0]
             except ValueError:
