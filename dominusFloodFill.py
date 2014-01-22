@@ -151,10 +151,10 @@ class Player(base_player.BasePlayer):
                                 res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
                 return [fin for n in res for fin in findAnswer(n[0], n[1], n[2])]
 
-            else if toTestShips and not remPoints:
+            elif toTestShips and not remPoints:
                 return [toDelShips]
 
-            else if not toTestShips and remPoints:
+            elif not toTestShips and remPoints:
                 return []
             else:
                 return [toDelShips]

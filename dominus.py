@@ -151,10 +151,10 @@ class Player(base_player.BasePlayer):
                                 res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
                 return [fin for n in res for fin in findAnswer(n[0], n[1], n[2])]
 
-            else if toTestShips and not remPoints:
+            elif toTestShips and not remPoints:
                 return [toDelShips]
 
-            else if not toTestShips and remPoints:
+            elif not toTestShips and remPoints:
                 return []
             else:
                 return [toDelShips]
@@ -197,16 +197,62 @@ class Player(base_player.BasePlayer):
                         for coord in shape:
                             if coord in border:
                                 borderScores[coord] += 1
+            try:
+                best = max(borderScores.items, key = lambda kvpair: kvpair[1])
 
-            best = max(borderScores.items, key = lambda kvpair: kvpair[1])
-
-            if best[1]:
-                return best[0]
+                if best[1]:
+                    return best[0]
+            except ValueError:
+                pass
                 
             # otherwise it's time to check the "More than one ship case"
 
             # TODO: more than one ship case
             
+            def helperFunction(toCover, covered, scores, remaining): # sorry
+                if remaining:
+                    if toCover:
+                        shapePreRot = remaining.pop()
+                        scores = helperFunction(toCover, scores, remaining[:])
+                        
+                        for fulcrum in toCover:
+                            shapePreAlign = {getRotationFactor(orientation, coord) for orientation in range(4) for coord in shapePreRot}
+                            shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
+                            
+                            for coord in shape:
+                                if not (self._opponenBoard[coord[0]][coord[1]] == const.EMTPY or coord in toCover) and coord not in covered:
+                                    return scores
+
+                            scores = helperFunction(toCover - shape, covered + shape, scores, remaining[:])
+                            return scores
+                    else:
+                        # nothing left to cover, great!
+                        for coord in covered:
+                            if coord in border:
+                                scores[coord] += 1
+                        return scores
+                else:
+                    # no pieces :(
+                    if toCover:
+                        # dead end
+                        return scores
+                    else:
+                        # FLAWLESS VICTORY!
+                        for coord in covered:
+                            if coord in border:
+                                scores[coord] += 1
+                        return scores
+                        
+            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), shapes[:])
+
+            try:
+                best = max(borderScores.items, key = lambda kvpair: kvpair[1])
+                if best[1]:
+                    return best[0]
+            except ValueError:
+                pass
+
+
             # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
                 self.shapes.remove(toDel)
