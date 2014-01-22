@@ -6,9 +6,9 @@ class Player(base_player.BasePlayer):
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
-        self._playerName = "Dominus"
+        self._playerName = "DominusFloodFill"
         self._playerYear = "1"
-        self._version = "Beta"
+        self._version = "Alpha"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
         self._moves = [] # Our previous moves
