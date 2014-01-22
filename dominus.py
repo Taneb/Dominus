@@ -171,6 +171,12 @@ class Player(base_player.BasePlayer):
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
         if hitRegion:
+            # most likely situation is that these all form a single ship. However, there is an unavoidable possibility that they do not.
+            # we should first check to see whether it is possible to cover all these cells with a single ship.
+            # if we can, we should base solutions on that.
+            # if we cannot, or we can't move based on that (because, say, the hits form the exact shape of a larger ship)
+            # we should do something else
+            
             # Check previous moves for unchecked cells
             for decMv in [c for x in hitRegion for c in self.circleCell(x)]:
                 if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
