@@ -224,7 +224,7 @@ class Player(base_player.BasePlayer):
                         for fx, fy in toCover:
                             for px, py in shapePreRot:
                                 for orientation in range(4):
-                                    shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
+                                    shapePreAlign = self.rotateShip(orientation, {(cx - px, cy - py) for cx, cy in shipPreRot})
                                     shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
 
                                     # make sure the shape fits
