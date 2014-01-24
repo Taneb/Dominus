@@ -47,8 +47,13 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
-    def rotateShip(self, rotation, ship):
-        return {self.getRotationFactor(orientation, coord) for coord in ship}
+    def rotateShip(self, rotation, ship, base=(0, 0)):
+        rotShip = []
+        for cx, cy in ship:
+            rx, ry = self.getRotationFactor(rotation, (cx, cy))
+            rotShip.append((base[0] + rx, base[1] + ry))
+
+        return frozenset(rotShip)
 
     def circleCell(self, piece):
         """
@@ -59,7 +64,8 @@ class Player(base_player.BasePlayer):
         return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
 
     def makeShip(self, base, shape):
-        rotShip = rotateShip(randint(0, 3), shape)
+        rotShip = self.rotateShip(randint(0, 3), shape, base)
+
         successful = []
         for coord in rotShip:
             success = True
