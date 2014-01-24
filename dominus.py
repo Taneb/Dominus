@@ -133,7 +133,11 @@ class Player(base_player.BasePlayer):
 
     def analyzeHitRegion(self, ps):
         def findAnswer(remPoints, toTestShips, toDelShips):
-            if toTestShips and remPoints:
+            if not remPoints:
+                #we've got there :)
+                return [toDelShips]
+
+            if toTestShips:
                 thisShip0 = toTestShips.pop()
 
                 res = [(remPoints, toTestShips[:], toDelShips[:])]
@@ -151,13 +155,8 @@ class Player(base_player.BasePlayer):
                                 res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
                 return [fin for state in res for fin in findAnswer(*state)]
 
-            elif toTestShips and not remPoints:
-                return [toDelShips]
-
-            elif not toTestShips and remPoints:
-                return []
             else:
-                return [toDelShips]
+                return []
 
         ans = findAnswer(ps, self.shapes[:], [])
         return ans[0]
