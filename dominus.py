@@ -60,7 +60,7 @@ class Player(base_player.BasePlayer):
         successful = []
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
-            actual = (coord[0] + base[0], coord[1] + base[1])
+            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
@@ -148,7 +148,7 @@ class Player(base_player.BasePlayer):
                             if willBeTaken <= remPoints:
                                 nextToDelShips = toDelShips[:]
                                 nextToDelShips.append(thisShip0)
-                                res.append((remPoints - willBeTaken, toTestShips, nextToDelShips))
+                                res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
                 return [fin for n in res for fin in findAnswer(n[0], n[1], n[2])]
 
             elif toTestShips and not remPoints:
@@ -189,17 +189,20 @@ class Player(base_player.BasePlayer):
 
             for fulcrum in hitRegion:
                 for shapePreRot in self.shapes:
-                    shapePreAlign = {self.getRotationFactor(orientation, coord) for orientation in range(0,4) for coord in shapePreRot}
+                    for px, py in shapePreRot:
+                        for orientation in range(4):
+                            shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
 
-                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
+                            shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
 
-                    if hitRegion <= shape:
-                        for coord in shape:
-                            if coord in border:
-                                borderScores[coord] += 1
+                            if hitRegion <= shape:
+                                for coord in shape:
+                                    if coord in border:
+                                        borderScores[coord] += 1
+
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
-
+               
                 if best[1]:
                     return best[0]
             except ValueError:
@@ -216,15 +219,17 @@ class Player(base_player.BasePlayer):
                         scores = helperFunction(toCover, covered, scores, remaining[:])
                         
                         for fulcrum in toCover:
-                            shapePreAlign = {self.getRotationFactor(orientation, coord) for orientation in range(4) for coord in shapePreRot}
-                            shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
+                            for px, py in shapePreRot:
+                                for orientation in range(4):
+                                    shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
+                                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
                             
-                            for coord in shape:
-                                if not self.isValidCell(coord) or not (self._opponenBoard[coord[0]][coord[1]] == const.EMPTY or coord in toCover) and coord not in covered:
-                                    return scores
+                                    for coord in shape:
+                                        if not self.isValidCell(coord) or not (self._opponenBoard[coord[0]][coord[1]] == const.EMPTY or coord in toCover) and coord not in covered:
+                                            return scores
 
-                            scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
-                            return scores
+                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
+                                    return scores
                     else:
                         # nothing left to cover, great!
                         for coord in covered:
@@ -251,7 +256,6 @@ class Player(base_player.BasePlayer):
                     return best[0]
             except ValueError:
                 pass
-
 
             # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
