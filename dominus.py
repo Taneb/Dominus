@@ -36,6 +36,16 @@ class Player(base_player.BasePlayer):
         if cell[0] < 6 and cell[1] > 5:  return False
         return True
 
+    def isValidShip(self, ship):
+        """
+        Check that a ship in a particular position is valid on the board.
+        """
+
+        for tile in ship:
+            if not self.isValidCell(tile):
+                return False
+        return True
+
     def getRotationFactor(self, rotation, i):
         if rotation == 0:
             return i
@@ -89,8 +99,6 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
-
-
     def deployFleet(self):
         """
         Decide where you want your fleet to be deployed, then return your board.
@@ -102,6 +110,31 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
 
+        self.allships = [
+            frozenset([( 0,  0), ( 1,  0), ( 1,  1), ( 1,  2), ( 0,  2), ( 2,  1)]),  # Hovercraft
+            frozenset([(-1,  0), ( 0,  0), ( 0,  1), ( 0,  2), (-1,  2), ( 1,  1)]),  # Hovercraft
+            frozenset([(-1, -1), ( 0, -1), ( 0,  0), ( 0,  1), (-1,  1), ( 1,  0)]),  # Hovercraft
+            frozenset([(-1, -2), ( 0, -2), ( 0, -1), ( 0,  0), (-1,  0), ( 1, -1)]),  # Hovercraft
+            frozenset([( 0, -2), ( 1, -2), ( 1, -1), ( 1,  0), ( 0,  0), ( 2, -1)]),  # Hovercraft
+            frozenset([(-2, -1), (-1, -1), (-1,  0), (-1,  1), (-2,  1), ( 0,  0)]),  # Hovercraft
+            frozenset([( 0,  0), ( 0,  1), ( 0,  2), ( 0,  3), ( 1,  0), (-1,  0)]),  # Aircraft Carrier
+            frozenset([( 0, -1), ( 0,  0), ( 0,  1), ( 0,  2), ( 1, -1), (-1, -1)]),  # Aircraft Carrier
+            frozenset([( 0, -2), ( 0, -1), ( 0,  0), ( 0,  1), ( 1, -2), (-1, -2)]),  # Aircraft Carrier
+            frozenset([( 0, -3), ( 0, -2), ( 0, -1), ( 0,  0), ( 1, -3), (-1, -3)]),  # Aircraft Carrier
+            frozenset([(-1,  0), (-1,  1), (-1,  2), (-1,  3), ( 0,  0), (-2,  0)]),  # Aircraft Carrier
+            frozenset([( 1,  0), ( 1,  1), ( 1,  2), ( 1,  3), ( 2,  0), ( 0,  0)]),  # Aircraft Carrier
+            frozenset([( 0,  0), ( 0,  1), ( 0,  2), ( 0,  3)]),  # Battleship
+            frozenset([( 0, -1), ( 0,  0), ( 0,  1), ( 0,  2)]),  # Battleship
+            frozenset([( 0, -2), ( 0, -1), ( 0,  0), ( 0,  1)]),  # Battleship
+            frozenset([( 0, -3), ( 0, -2), ( 0, -1), ( 0,  0)]),  # Battleship
+            frozenset([( 0,  0), ( 0,  1), ( 0,  2)]),  # Cruiser
+            frozenset([( 0, -1), ( 0,  0), ( 0,  1)]),  # Cruiser
+            frozenset([( 0, -2), ( 0, -1), ( 0,  0)]),  # Cruiser
+            frozenset([( 0,  0), ( 0,  1)]),  # Destroyer
+            frozenset([( 0, -1), ( 0,  0)]),  # Destroyer
+        ]
+
+        # Not needed anymore?
         self.shapes = [
             frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
             frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
@@ -165,7 +198,7 @@ class Player(base_player.BasePlayer):
             else:
                 return []
 
-        ans = findAnswer(ps, self.shapes[:], [])
+        ans = findAnswer(ps, self.allships[:], [])
         return ans[0]
 
     def chooseMove(self):
@@ -193,17 +226,16 @@ class Player(base_player.BasePlayer):
 
             borderScores = dict.fromkeys(border, 0)
 
-            for fx, fy in hitRegion:
-                for shapePreRot in self.shapes:
-                    for px, py in shapePreRot:
-                        for orientation in range(4):
-                            shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
+            for tile in hitRegion:
+                for shapePreRot in self.allships:
+                    for orientation in range(4):
+                        shape = self.rotateShip(orientation, shapePreRot, tile)
+                        if not self.isValidShip(shape):
+                            continue
 
-                            shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
-
-                            if hitRegion <= shape:
-                                for coord in shape & border:
-                                    borderScores[coord] += 1
+                        if hitRegion <= shape:
+                            for coord in shape & border:
+                                borderScores[coord] += 1
 
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
@@ -221,27 +253,24 @@ class Player(base_player.BasePlayer):
                         shapePreRot = remaining.pop()
                         scores1 = helperFunction(toCover, covered, scores, remaining[:])
 
-                        for fx, fy in toCover:
-                            for px, py in shapePreRot:
-                                for orientation in range(4):
-                                    shapePreAlign = self.rotateShip(orientation, {(cx - px, cy - py) for cx, cy in shipPreRot})
-                                    shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
+                        for tile in toCover:
+                            for orientation in range(4):
+                                shape = self.rotateShip(orientation, shapePreRot, tile)
+                                if not self.isValidShip(shape):
+                                    continue
 
-                                    # make sure the shape fits
-                                    # if it doesn't, return what we had already
-                                    for cx, cy in shape:
-                                        # check each coord is valid
-                                        if not self.isValidCell((cx, cy)):
-                                            return scores1
+                                # make sure the shape fits
+                                # if it doesn't, return what we had already
+                                for cx, cy in shape:
 
-                                        # check that each coord is not already taken
-                                        if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
-                                            return scores1
-                                        if (cx, cy) in covered:
-                                            return scores1
+                                    # check that each coord is not already taken
+                                    if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
+                                        return scores1
+                                    if (cx, cy) in covered:
+                                        return scores1
 
-                                    scores2 = helperFunction(toCover - shape, covered | shape, scores1, remaining[:])
-                                    return scores2
+                                scores2 = helperFunction(toCover - shape, covered | shape, scores1, remaining[:])
+                                return scores2
 
                     else:
                         # no pieces left :(
@@ -251,9 +280,10 @@ class Player(base_player.BasePlayer):
                     # update the weightings
                     for coord in covered & border:
                         scores[coord] += 1
+                    print scores
                     return scores
 
-            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
+            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.allships[:])
 
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
@@ -264,7 +294,7 @@ class Player(base_player.BasePlayer):
 
             # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
-                self.shapes.remove(toDel)
+                self.allships.remove(toDel)
 
             # Reset _moves because we've checked all the hits we care about.
             self._moves = []
@@ -274,7 +304,7 @@ class Player(base_player.BasePlayer):
         for x in range(12):
             for y in range(len(self._opponenBoard[x])):
                 thisProb = 0
-                for shape in self.shapes:
+                for shape in self.allships:
                     thisProb += self.countPossibilities((x, y), shape,
                             lambda x: x == const.EMPTY)
                 if thisProb > bestProb:
