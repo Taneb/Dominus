@@ -59,19 +59,17 @@ class Player(base_player.BasePlayer):
         return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
 
     def makeShip(self, base, shape):
-        rotation = randint(0, 3)
+        rotShip = rotateShip(randint(0, 3), shape)
         successful = []
-        for coord in shape:
-            rotFact = self.getRotationFactor(rotation, coord)
-            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
+        for coord in rotShip:
             success = True
-            success = success and self.isValidCell(actual)
-            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
+            success = success and self.isValidCell(coord)
+            success = success and self._playerBoard[coord[0]][coord[1]] == const.EMPTY
             if not success: return False
 
             # Try not to connect ships together
             count = 0
-            for cell in self.circleCell(actual):
+            for cell in self.circleCell(coord):
                 success = success and (not self.isValidCell(cell) or
                                        cell in successful or
                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
@@ -80,7 +78,7 @@ class Player(base_player.BasePlayer):
             # Don't bother trying to separate ships if it's too hard
             if not success and count < 200: return False
 
-            successful.append(actual)
+            successful.append(coord)
         for coord in successful:
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
