@@ -144,7 +144,7 @@ class Player(base_player.BasePlayer):
                 res = [(remPoints, toTestShips[:], toDelShips[:])]
 
                 for direction in range(4):
-                    thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
+                    thisShip = self.rotateShip(direction, thisShip0)
 
                     for fx, fy in remPoints:
                         for ox, oy in thisShip:
