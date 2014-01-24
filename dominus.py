@@ -47,6 +47,9 @@ class Player(base_player.BasePlayer):
             return (i[1], -i[0])
         raise IndexError # It's sort of an index error
 
+    def rotateShip(self, rotation, ship):
+        return {self.getRotationFactor(orientation, coord) for coord in ship}
+
     def circleCell(self, piece):
         """
         Rotate around a particular cell on the board.
