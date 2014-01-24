@@ -82,7 +82,7 @@ class Player(base_player.BasePlayer):
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
- 
+
 
     def deployFleet(self):
         """
@@ -141,7 +141,7 @@ class Player(base_player.BasePlayer):
                 thisShip0 = toTestShips.pop()
 
                 res = [(remPoints, toTestShips[:], toDelShips[:])]
-                    
+
                 for direction in range(4):
                     thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
 
@@ -175,7 +175,7 @@ class Player(base_player.BasePlayer):
             # if we can, we should base solutions on that.
             # if we cannot, or we can't move based on that (because, say, the hits form the exact shape of a larger ship)
             # we should do something else
-            
+
             # Check previous moves for unchecked cells
 
             border = set()
@@ -200,12 +200,12 @@ class Player(base_player.BasePlayer):
 
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
-               
+
                 if best[1]:
                     return best[0]
             except ValueError:
                 pass
-                
+
             # otherwise it's time to check the "More than one ship case"
 
             def helperFunction(toCover, covered, scores, remaining): # sorry
@@ -213,7 +213,7 @@ class Player(base_player.BasePlayer):
                     if remaining:
                         shapePreRot = remaining.pop()
                         scores1 = helperFunction(toCover, covered, scores, remaining[:])
-                        
+
                         for fx, fy in toCover:
                             for px, py in shapePreRot:
                                 for orientation in range(4):
@@ -245,7 +245,7 @@ class Player(base_player.BasePlayer):
                     for coord in covered & border:
                         scores[coord] += 1
                     return scores
-                        
+
             borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
 
             try:
