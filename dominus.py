@@ -141,15 +141,15 @@ class Player(base_player.BasePlayer):
                 for direction in range(4):
                     thisShip = {self.getRotationFactor(direction, toRot) for toRot in thisShip0}
 
-                    for point in remPoints:
-                        for offset in thisShip:
-                            willBeTaken = {(point[0] - offset[0] + p[0], point[1] - offset[1] + p[1]) for p in thisShip}
+                    for fx, fy in remPoints:
+                        for ox, oy in thisShip:
+                            willBeTaken = {(fx - ox + px, fy - oy + py) for px, py in thisShip}
 
                             if willBeTaken <= remPoints:
                                 nextToDelShips = toDelShips[:]
                                 nextToDelShips.append(thisShip0)
                                 res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
-                return [fin for n in res for fin in findAnswer(n[0], n[1], n[2])]
+                return [fin for state in res for fin in findAnswer(*state)]
 
             elif toTestShips and not remPoints:
                 return [toDelShips]
@@ -187,18 +187,17 @@ class Player(base_player.BasePlayer):
 
             borderScores = dict.fromkeys(border, 0)
 
-            for fulcrum in hitRegion:
+            for fx, fy in hitRegion:
                 for shapePreRot in self.shapes:
                     for px, py in shapePreRot:
                         for orientation in range(4):
                             shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
 
-                            shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
+                            shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
 
                             if hitRegion <= shape:
-                                for coord in shape:
-                                    if coord in border:
-                                        borderScores[coord] += 1
+                                for coord in shape & border:
+                                    borderScores[coord] += 1
 
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
@@ -210,43 +209,43 @@ class Player(base_player.BasePlayer):
                 
             # otherwise it's time to check the "More than one ship case"
 
-            # TODO: more than one ship case
-            
             def helperFunction(toCover, covered, scores, remaining): # sorry
-                if remaining:
-                    if toCover:
+                if toCover:
+                    if remaining:
                         shapePreRot = remaining.pop()
-                        scores = helperFunction(toCover, covered, scores, remaining[:])
+                        scores1 = helperFunction(toCover, covered, scores, remaining[:])
                         
-                        for fulcrum in toCover:
+                        for fx, fy in toCover:
                             for px, py in shapePreRot:
                                 for orientation in range(4):
                                     shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
-                                    shape = {(coord[0] + fulcrum[0], coord[1] + fulcrum[1]) for coord in shapePreAlign}
-                            
-                                    for coord in shape:
-                                        if not self.isValidCell(coord) or not (self._opponenBoard[coord[0]][coord[1]] == const.EMPTY or coord in toCover) and coord not in covered:
-                                            return scores
+                                    shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
 
-                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
-                                    return scores
+                                    # make sure the shape fits
+                                    # if it doesn't, return what we had already
+                                    for cx, cy in shape:
+                                        # check each coord is valid
+                                        if not self.isValidCell((cx, cy)):
+                                            return scores1
+
+                                        # check that each coord is not already taken
+                                        if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
+                                            return scores1
+                                        if (cx, cy) in covered:
+                                            return scores1
+
+                                    scores2 = helperFunction(toCover - shape, covered | shape, scores1, remaining[:])
+                                    return scores2
+
                     else:
-                        # nothing left to cover, great!
-                        for coord in covered:
-                            if coord in border:
-                                scores[coord] += 1
+                        # no pieces left :(
                         return scores
                 else:
-                    # no pieces :(
-                    if toCover:
-                        # dead end
-                        return scores
-                    else:
-                        # FLAWLESS VICTORY!
-                        for coord in covered:
-                            if coord in border:
-                                scores[coord] += 1
-                        return scores
+                    # FLAWLESS VICTORY!
+                    # update the weightings
+                    for coord in covered & border:
+                        scores[coord] += 1
+                    return scores
                         
             borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
 
