@@ -216,32 +216,43 @@ class Player(base_player.BasePlayer):
             # otherwise it's time to check the "More than one ship case"
 
             def helperFunction(toCover, covered, scores, remaining): # sorry
+                print "I AM CALLED!"
+                print "To cover:", toCover
+                print "Covered:", covered
                 if toCover:
                     if remaining:
                         shapePreRot = remaining.pop()
-                        scores1 = helperFunction(toCover, covered, scores, remaining[:])
+                        print "Trying", shapePreRot
+                        scores = helperFunction(toCover, covered, scores, remaining[:])
 
                         for fx, fy in toCover:
                             for px, py in shapePreRot:
                                 for orientation in range(4):
-                                    shapePreAlign = self.rotateShip(orientation, {(cx - px, cy - py) for cx, cy in shipPreRot})
+                                    shapePreAlign = self.rotateShip(orientation, {(cx - px, cy - py) for cx, cy in shapePreRot})
                                     shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
 
                                     # make sure the shape fits
                                     # if it doesn't, return what we had already
+
+                                    valid = True
+
                                     for cx, cy in shape:
                                         # check each coord is valid
                                         if not self.isValidCell((cx, cy)):
-                                            return scores1
+                                            valid = False
+                                            break
 
                                         # check that each coord is not already taken
                                         if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
-                                            return scores1
-                                        if (cx, cy) in covered:
-                                            return scores1
+                                            valid = False
+                                            break
 
-                                    scores2 = helperFunction(toCover - shape, covered | shape, scores1, remaining[:])
-                                    return scores2
+                                        if (cx, cy) in covered:
+                                            valid = False
+                                            break
+
+                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
+                        return scores
 
                     else:
                         # no pieces left :(
@@ -254,7 +265,7 @@ class Player(base_player.BasePlayer):
                     return scores
 
             borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
-
+            print borderScores
             try:
                 best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
                 if best[1]:
