@@ -200,8 +200,17 @@ class Player(base_player.BasePlayer):
                             shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
 
                             shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
+                            
+                            valid = True
+                            for cx, cy in shape:
+                                if not self.isValidCell((cx, cy)):
+                                    valid = False
+                                    break
+                                if self._opponenBoard[cx][cy] != const.EMPTY and (cx, cy) not in hitRegion:
+                                    valid = False
+                                    break
 
-                            if hitRegion <= shape:
+                            if valid and hitRegion <= shape:
                                 for coord in shape & border:
                                     borderScores[coord] += 1
 
@@ -215,34 +224,33 @@ class Player(base_player.BasePlayer):
 
             # otherwise it's time to check the "More than one ship case"
 
-            def helperFunction(toCover, covered, scores, remaining): # sorry
+            def helperFunction(toCover, covered, scores, remaining):
                 print "I AM CALLED!"
                 print "To cover:", toCover
                 print "Covered:", covered
                 if toCover:
                     if remaining:
-                        shapePreRot = remaining.pop()
-                        print "Trying", shapePreRot
-                        scores = helperFunction(toCover, covered, scores, remaining[:])
+                        # hacky way to get an arbitrary cell from toCover
+                        # if you know a better way please put it in
+                        checkingCell = None
+                        for c in toCover:
+                            checkingCell = c
+                            break
 
-                        for fx, fy in toCover:
-                            for px, py in shapePreRot:
+                        for shapePreOffset in self.shapes:
+                            for pivx, pivy in shapePreOffset:
                                 for orientation in range(4):
-                                    shapePreAlign = self.rotateShip(orientation, {(cx - px, cy - py) for cx, cy in shapePreRot})
-                                    shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
-
-                                    # make sure the shape fits
-                                    # if it doesn't, return what we had already
+                                    shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x,y in shapePreOffset], base=c)
+                                    
+                                    # make sure it fits
 
                                     valid = True
 
                                     for cx, cy in shape:
-                                        # check each coord is valid
                                         if not self.isValidCell((cx, cy)):
                                             valid = False
                                             break
 
-                                        # check that each coord is not already taken
                                         if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
                                             valid = False
                                             break
@@ -250,13 +258,16 @@ class Player(base_player.BasePlayer):
                                         if (cx, cy) in covered:
                                             valid = False
                                             break
+                                    
+                                    if valid:
+                                        scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:].remove(shapePreOffset))
 
-                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:])
                         return scores
 
                     else:
                         # no pieces left :(
                         return scores
+
                 else:
                     # FLAWLESS VICTORY!
                     # update the weightings
