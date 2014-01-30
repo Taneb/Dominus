@@ -2,6 +2,13 @@ import const
 import base_player
 from random import randint
 
+allships = [
+    frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
+    frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
+    frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
+    frozenset([( 0,  0), (0,  1), (0,  2)]), # Cruiser
+    frozenset([( 0,  0), (1,  0)])] # Destroyer
+
 class Player(base_player.BasePlayer):
     """Dominus Blottleships AI implementation."""
 
@@ -124,13 +131,7 @@ class Player(base_player.BasePlayer):
         # Reset moves each game
         self._moves = []
         self.floodfilling = False
-        self.shapes = [
-            frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
-            frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
-            frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
-            frozenset([( 0,  0), (0,  1), (0,  2)]), # Cruiser
-            frozenset([( 0,  0), (1,  0)]) # Destroyer
-        ]
+        self.shapes = allShips
 
         for ship in self.shapes:
             while True:
@@ -297,7 +298,7 @@ class Player(base_player.BasePlayer):
                 return best[0]
         except ValueError:
             pass
-            
+
     def startFloodFill(self):
         #todo
         self.floodfilling = True
