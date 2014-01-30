@@ -167,6 +167,34 @@ class Player(base_player.BasePlayer):
         ans = findAnswer(ps, self.shapes[:], [])
         return ans[0]
 
+    def coverWithSingleShip(self, hitRegion, border):
+        borderScores = dict.fromkeys(border, 0)
+        
+        for cell in hitRegion:
+            for shapePreRot in self.shapes:
+                for px, py in shapePreRot:
+                    for orientation in range(4):
+                        shape = self.rotateShip(orientation, {(x - px, y - py) for x, y in shapePreRot}, base=cell)
+
+                        if hitRegion <= shape:
+                            
+                            valid = True
+                            for cx, cy in shape:
+                                valid = valid and self.isValidCell((cx, cy))
+                                valid = valid and self._opponenBoard[cx][cy] != const.EMPTY or (cx, cy) in hitRegion
+
+                            if valid:
+                                for coord in shape & border:
+                                    borderScores[coord] += 1
+
+        try:
+            best = max(borderScores.items(), key = lambda kv: kv[1])
+            if best[1]:
+                return best[0]
+
+        except ValueError:
+            pass
+
     def chooseMove(self):
         """
         Decide what move to make based on current state of opponent's board and return it
@@ -190,36 +218,11 @@ class Player(base_player.BasePlayer):
                 if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
                     border.add(decMv)
 
+            oneShipCase = self.coverWithSingleShip(hitRegion, border)
+            if oneShipCase is not None:
+                return oneShipCase
+
             borderScores = dict.fromkeys(border, 0)
-
-            for fx, fy in hitRegion:
-                for shapePreRot in self.shapes:
-                    for px, py in shapePreRot:
-                        for orientation in range(4):
-                            shapePreAlign = {self.getRotationFactor(orientation, (cx - px, cy - py)) for cx, cy in shapePreRot}
-
-                            shape = {(cx + fx, cy + fy) for cx, cy in shapePreAlign}
-                            
-                            valid = True
-                            for cx, cy in shape:
-                                if not self.isValidCell((cx, cy)):
-                                    valid = False
-                                    break
-                                if self._opponenBoard[cx][cy] != const.EMPTY and (cx, cy) not in hitRegion:
-                                    valid = False
-                                    break
-
-                            if valid and hitRegion <= shape:
-                                for coord in shape & border:
-                                    borderScores[coord] += 1
-
-            try:
-                best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
-
-                if best[1]:
-                    return best[0]
-            except ValueError:
-                pass
 
             # otherwise it's time to check the "More than one ship case"
 
