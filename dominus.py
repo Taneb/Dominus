@@ -3,7 +3,7 @@ import base_player
 from random import randint
 
 class Player(base_player.BasePlayer):
-"""Dominus Blottleships AI implementation."""
+    """Dominus Blottleships AI implementation."""
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
