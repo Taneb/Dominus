@@ -125,13 +125,12 @@ class Player(base_player.BasePlayer):
         """
         count = 0
         for rotation in xrange(4):
-            for offset in [self.getRotationFactor(rotation, cell) for cell in shape]:
+            for px, py in shape:
+                shape2 = self.rotateShip(rotation, {(x - px, y - py) for x, y in shape}, coord)
                 valid = True
-                for cell in shape:
-                    x = coord[0] - offset[0] + cell[0]
-                    y = coord[1] - offset[1] + cell[1]
-                    valid = valid and (self.isValidCell((x, y)) and
-                            isEmpty(self._opponenBoard[x][y]))
+                for x, y in shape2:
+                    valid = valid and self.isValidCell((x, y))
+                    valid = valid and isEmpty(self._opponenBoard[x][y])
                     if not valid:
                         break
                 if valid:
