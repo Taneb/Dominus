@@ -118,7 +118,7 @@ class Player(base_player.BasePlayer):
 
         return self._playerBoard
 
-    def countPossibilities(self, coord, shape, isEmpty):
+    def countPossibilities(self, coord, shape):
         """
         Count the number of possible ways the given shape could overlap with
         the given coordinate
@@ -130,7 +130,7 @@ class Player(base_player.BasePlayer):
                 valid = True
                 for x, y in shape2:
                     valid = valid and self.isValidCell((x, y))
-                    valid = valid and isEmpty(self._opponenBoard[x][y])
+                    valid = valid and self._opponenBoard[x][y] == const.EMPTY
                     if not valid:
                         break
                 if valid:
@@ -296,8 +296,7 @@ class Player(base_player.BasePlayer):
             for y in range(len(self._opponenBoard[x])):
                 thisProb = 0
                 for shape in self.shapes:
-                    thisProb += self.countPossibilities((x, y), shape,
-                            lambda x: x == const.EMPTY)
+                    thisProb += self.countPossibilities((x, y), shape)
                 if thisProb > bestProb:
                     bestProb = thisProb
                     decMv = (x, y)
