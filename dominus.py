@@ -161,49 +161,39 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
-    def analyzeHitRegion(self, ps):
+    def analyzeHitRegion(self, remPoints, toTestShips, toDelShips=[]):
         """Gets a list of ships that precisely cover a set of points.
 
         Keyword arguments:
-        ps -- set of coords on the board
+        remPoints -- remaining coords to test
+        toTestShips -- ships still to test
+        toDelShips -- ships already used in the solution
 
         """
-        def findAnswer(remPoints, toTestShips, toDelShips):
-            """Gets a list of ships that precisely cover a set of points.
+        if not remPoints:
+            # We've got there :)
+            return [toDelShips]
 
-            Keyword arguments:
-            remPoints -- remaining coords to test
-            toTestShips -- ships still to test
-            toDelShips -- ships already used in the solution
+        if toTestShips:
+            thisShip0 = toTestShips.pop()
 
-            """
-            if not remPoints:
-                # We've got there :)
-                return [toDelShips]
+            res = [(remPoints, toTestShips[:], toDelShips[:])]
 
-            if toTestShips:
-                thisShip0 = toTestShips.pop()
+            for direction in range(4):
+                thisShip = self.rotateShip(direction, thisShip0)
 
-                res = [(remPoints, toTestShips[:], toDelShips[:])]
+                for fx, fy in remPoints:
+                    for ox, oy in thisShip:
+                        willBeTaken = {(fx - ox + px, fy - oy + py) for px, py in thisShip}
 
-                for direction in range(4):
-                    thisShip = self.rotateShip(direction, thisShip0)
+                        if willBeTaken <= remPoints:
+                            nextToDelShips = toDelShips[:]
+                            nextToDelShips.append(thisShip0)
+                            res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
+            return [fin for state in res for fin in self.analyzeHitRegion(*state)]
 
-                    for fx, fy in remPoints:
-                        for ox, oy in thisShip:
-                            willBeTaken = {(fx - ox + px, fy - oy + py) for px, py in thisShip}
-
-                            if willBeTaken <= remPoints:
-                                nextToDelShips = toDelShips[:]
-                                nextToDelShips.append(thisShip0)
-                                res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
-                return [fin for state in res for fin in findAnswer(*state)]
-
-            else:
-                return []
-
-        ans = findAnswer(ps, self.shapes[:], [])
-        return ans[0]
+        else:
+            return []
 
     def coverWithSingleShip(self, hitRegion, border):
         """Chooses the most likely cell in the border to be a hit, assuming
@@ -346,7 +336,7 @@ class Player(base_player.BasePlayer):
                 return multiShipCase
 
             # Otherwise stop looking for those shapes
-            for toDel in self.analyzeHitRegion(hitRegion):
+            for toDel in self.analyzeHitRegion(hitRegion, self.shapes[:])[0]:
                 self.shapes.remove(toDel)
 
             # Reset _moves because we've checked all the hits we care about.
