@@ -195,6 +195,57 @@ class Player(base_player.BasePlayer):
         except ValueError:
             pass
 
+    def coverWithMultipleShips(self, hitRegion, border):
+        def helperFunction(toCover, covered, scores, remaining):
+            if toCover:
+                if remaining:
+                    # hacky way to get an arbitrary cell from toCover
+                    # if you know a better way please put it in
+                    checkingCell = None
+                    for c in toCover:
+                        checkingCell = c
+                        break
+
+                    for shapePreOffset in self.shapes:
+                        for pivx, pivy in shapePreOffset:
+                            for orientation in range(4):
+                                shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x,y in shapePreOffset], base=c)
+
+                                # make sure it fits
+
+                                valid = True
+
+                                for cx, cy in shape:
+                                    valid = valid and self.isValidCell((cx, cy))
+                                    valid = valid and self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover
+                                    valid = valid and (cx, cy) not in covered
+                                    if not valid:
+                                        break
+
+                                if valid:
+                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:].remove(shapePreOffset))
+
+                    return scores
+
+                else:
+                    # no pieces left :(
+                    return scores
+
+            else:
+                # FLAWLESS VICTORY!
+                # update the weightings
+                for coord in covered & border:
+                    scores[coord] += 1
+                return scores
+        
+        borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
+        try:
+            best = max(borderScores.items(), key = lambda kv: kv[1])
+            if best[1]:
+                return best[0]
+        except ValueError:
+            pass
+
     def chooseMove(self):
         """
         Decide what move to make based on current state of opponent's board and return it
@@ -226,65 +277,9 @@ class Player(base_player.BasePlayer):
 
             # otherwise it's time to check the "More than one ship case"
 
-            def helperFunction(toCover, covered, scores, remaining):
-                print "I AM CALLED!"
-                print "To cover:", toCover
-                print "Covered:", covered
-                if toCover:
-                    if remaining:
-                        # hacky way to get an arbitrary cell from toCover
-                        # if you know a better way please put it in
-                        checkingCell = None
-                        for c in toCover:
-                            checkingCell = c
-                            break
-
-                        for shapePreOffset in self.shapes:
-                            for pivx, pivy in shapePreOffset:
-                                for orientation in range(4):
-                                    shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x,y in shapePreOffset], base=c)
-                                    
-                                    # make sure it fits
-
-                                    valid = True
-
-                                    for cx, cy in shape:
-                                        if not self.isValidCell((cx, cy)):
-                                            valid = False
-                                            break
-
-                                        if not (self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover):
-                                            valid = False
-                                            break
-
-                                        if (cx, cy) in covered:
-                                            valid = False
-                                            break
-                                    
-                                    if valid:
-                                        scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:].remove(shapePreOffset))
-
-                        return scores
-
-                    else:
-                        # no pieces left :(
-                        return scores
-
-                else:
-                    # FLAWLESS VICTORY!
-                    # update the weightings
-                    for coord in covered & border:
-                        scores[coord] += 1
-                    return scores
-
-            borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
-            print borderScores
-            try:
-                best = max(borderScores.items(), key = lambda kvpair: kvpair[1])
-                if best[1]:
-                    return best[0]
-            except ValueError:
-                pass
+            multiShipCase = self.coverWithMultipleShips(hitRegion, border)
+            if multiShipCase is not None:
+                return multiShipCase
 
             # Otherwise stop looking for those shapes
             for toDel in self.analyzeHitRegion(hitRegion):
