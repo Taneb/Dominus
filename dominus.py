@@ -2,7 +2,7 @@ import const
 import base_player
 from random import randint
 
-allships = [
+allShips = [
     frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
     frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
     frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
@@ -126,12 +126,14 @@ class Player(base_player.BasePlayer):
 
     def deployFleet(self):
         """Place ship fleet on the board. """
+
+        self.shapes = allShips[:]
         self._initBoards()
 
         # Reset moves each game
         self._moves = []
         self.floodfilling = False
-        self.shapes = allShips
+
 
         for ship in self.shapes:
             while True:
@@ -301,9 +303,9 @@ class Player(base_player.BasePlayer):
 
     def startFloodFill(self):
         #todo
+        print "Starting flood fill"
         self.floodfilling = True
-        #reset shapelist
-        pass
+        self.shapes = allShips[:] # trust nothing
 
     def chooseMove(self):
         """Decide what move to make based on current state of opponent's
@@ -313,8 +315,27 @@ class Player(base_player.BasePlayer):
 
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
         if self.floodfilling:
-            #todo
-            pass
+            hitRegion = set()
+            for x in range(12):
+                if x < 6:
+                    width = 6
+                else:
+                    width = 12
+                for y in range(width):
+                    if self._opponenBoard[x][y] == const.HIT:
+                        hitRegion.add((x, y))
+
+            border = set()
+
+            for coord in hitRegion:
+                for bx, by in self.circleCell(coord):
+                    if self.isValidCell((bx, by)) and self._opponenBoard[bx][by] == const.EMPTY:
+                        border.add((bx,by))
+
+            try:
+                return border.pop()
+            except KeyError:
+                pass
         elif hitRegion:
             # most likely situation is that these all form a single ship. However, there is an unavoidable possibility that they do not.
             # we should first check to see whether it is possible to cover all these cells with a single ship.
@@ -348,6 +369,7 @@ class Player(base_player.BasePlayer):
                     self.shapes.remove(toDel)
             except IndexError:
                 self.startFloodFill()
+                return self.chooseMove()
 
             # Reset _moves because we've checked all the hits we care about.
             self._moves = []
