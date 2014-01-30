@@ -123,7 +123,7 @@ class Player(base_player.BasePlayer):
 
         # Reset moves each game
         self._moves = []
-
+        self.floodfilling = False
         self.shapes = [
             frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
             frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
@@ -297,6 +297,12 @@ class Player(base_player.BasePlayer):
                 return best[0]
         except ValueError:
             pass
+            
+    def startFloodFill(self):
+        #todo
+        self.floodfilling = True
+        #reset shapelist
+        pass
 
     def chooseMove(self):
         """Decide what move to make based on current state of opponent's
@@ -305,8 +311,10 @@ class Player(base_player.BasePlayer):
         decMv = (-1, -1)
 
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
-
-        if hitRegion:
+        if self.floodfilling:
+            #todo
+            pass
+        elif hitRegion:
             # most likely situation is that these all form a single ship. However, there is an unavoidable possibility that they do not.
             # we should first check to see whether it is possible to cover all these cells with a single ship.
             # if we can, we should base solutions on that.
@@ -334,8 +342,11 @@ class Player(base_player.BasePlayer):
                 return multiShipCase
 
             # Otherwise stop looking for those shapes
-            for toDel in self.analyzeHitRegion(hitRegion, self.shapes[:])[0]:
-                self.shapes.remove(toDel)
+            try:
+                for toDel in self.analyzeHitRegion(hitRegion, self.shapes[:])[0]:
+                    self.shapes.remove(toDel)
+            except IndexError:
+                self.startFloodFill()
 
             # Reset _moves because we've checked all the hits we care about.
             self._moves = []
