@@ -3,6 +3,7 @@ import base_player
 from random import randint
 
 class Player(base_player.BasePlayer):
+"""Dominus Blottleships AI implementation."""
 
     def __init__(self):
         base_player.BasePlayer.__init__(self)
@@ -14,9 +15,7 @@ class Player(base_player.BasePlayer):
         self._moves = [] # Our previous moves
 
     def getRandPiece(self):
-        """
-        Get a random piece on the board.
-        """
+        """Get a random piece on the board."""
 
         row = randint(0, 11)
         # Board is a weird L shape
@@ -26,10 +25,12 @@ class Player(base_player.BasePlayer):
         return (row, col)
 
     def isValidCell(self, cell):
-        """
-        Check that a generated cell is valid on the board.
-        """
+        """Check that a generated cell is valid on the board.
 
+        Keyword arguments:
+        cell -- piece on the board to check
+
+        """
         assert(type(cell) == tuple)
         if cell[0] < 0  or cell[1] < 0:  return False
         if cell[0] > 11 or cell[1] > 11: return False
@@ -37,6 +38,13 @@ class Player(base_player.BasePlayer):
         return True
 
     def getRotationFactor(self, rotation, i):
+        """Rotate a piece (around (0, 0)).
+
+        Keyword arguments:
+        rotation -- arbitrary rotation factor
+        i -- piece of the board to rotate
+
+        """
         if rotation == 0:
             return i
         if rotation == 1:
@@ -48,6 +56,14 @@ class Player(base_player.BasePlayer):
         raise IndexError # It's sort of an index error
 
     def rotateShip(self, rotation, ship, base=(0, 0)):
+        """Rotate a ship.
+
+        Keyword arguments:
+        rotation -- arbitrary rotation factor
+        ship -- ship to rotate
+        base -- (default: (0, 0)
+
+        """
         rotShip = []
         for cx, cy in ship:
             rx, ry = self.getRotationFactor(rotation, (cx, cy))
@@ -56,14 +72,24 @@ class Player(base_player.BasePlayer):
         return frozenset(rotShip)
 
     def circleCell(self, piece):
-        """
-        Rotate around a particular cell on the board.
+        """Get a list of pieces that are adjacent to another piece.
+
+        Keyword arguments:
+        piece -- piece on the board
+
         """
         assert(type(piece) == tuple)
         rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
         return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
 
     def makeShip(self, base, shape):
+        """Place a ship on the board.
+
+        Keyword arguments:
+        base -- base piece to try placing the ship on
+        shape -- ship to try placing
+
+        """
         rotShip = self.rotateShip(randint(0, 3), shape, base)
 
         successful = []
@@ -92,11 +118,7 @@ class Player(base_player.BasePlayer):
 
 
     def deployFleet(self):
-        """
-        Decide where you want your fleet to be deployed, then return your board.
-        The attribute to be modified is _playerBoard. You can see how it is defined
-        in the _initBoards method in the file base_player.py
-        """
+        """Place ship fleet on the board. """
         self._initBoards()
 
         # Reset moves each game
@@ -119,9 +141,11 @@ class Player(base_player.BasePlayer):
         return self._playerBoard
 
     def countPossibilities(self, coord, shape):
-        """
-        Count the number of possible ways the given shape could overlap with
-        the given coordinate
+        """Count the number of possible ways the given shape could overlap
+        with the given coordinate.
+
+        coord -- piece on the board to check
+        shape -- ship to try placing
         """
         count = 0
         for rotation in xrange(4):
@@ -138,9 +162,23 @@ class Player(base_player.BasePlayer):
         return count
 
     def analyzeHitRegion(self, ps):
+        """Gets a list of ships that precisely cover a set of points.
+
+        Keyword arguments:
+        ps -- set of coords on the board
+
+        """
         def findAnswer(remPoints, toTestShips, toDelShips):
+            """Gets a list of ships that precisely cover a set of points.
+
+            Keyword arguments:
+            remPoints -- remaining coords to test
+            toTestShips -- ships still to test
+            toDelShips -- ships already used in the solution
+
+            """
             if not remPoints:
-                #we've got there :)
+                # We've got there :)
                 return [toDelShips]
 
             if toTestShips:
@@ -168,8 +206,16 @@ class Player(base_player.BasePlayer):
         return ans[0]
 
     def coverWithSingleShip(self, hitRegion, border):
+        """Chooses the most likely cell in the border to be a hit, assuming
+        that there is only one ship, where no others are adjacent to it.
+
+        Keyword arguments:
+        hitRegion -- set of known hits
+        border -- set of points adjacent to these hits
+
+        """
         borderScores = dict.fromkeys(border, 0)
-        
+
         for cell in hitRegion:
             for shapePreRot in self.shapes:
                 for px, py in shapePreRot:
@@ -177,7 +223,7 @@ class Player(base_player.BasePlayer):
                         shape = self.rotateShip(orientation, {(x - px, y - py) for x, y in shapePreRot}, base=cell)
 
                         if hitRegion <= shape:
-                            
+
                             valid = True
                             for cx, cy in shape:
                                 valid = valid and self.isValidCell((cx, cy))
@@ -196,7 +242,25 @@ class Player(base_player.BasePlayer):
             pass
 
     def coverWithMultipleShips(self, hitRegion, border):
+        """Chooses the most likely cell in the border to be a hit, assuming
+        there are ships adjacent to each other.
+
+        Keyword arguments:
+        hitRegion -- set of known hits
+        border -- set of points adjacent to these hits
+
+        """
         def helperFunction(toCover, covered, scores, remaining):
+            """Recursive helper function to calculate the best point on the
+            board to hit.
+
+            Keyword arguments:
+            toCover -- set of coords to cover
+            covered -- set of coords already covered
+            scores -- dictionary of scores relating to the coords
+            remaining -- remaining ships to check
+
+            """
             if toCover:
                 if remaining:
                     # hacky way to get an arbitrary cell from toCover
@@ -237,7 +301,7 @@ class Player(base_player.BasePlayer):
                 for coord in covered & border:
                     scores[coord] += 1
                 return scores
-        
+
         borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
         try:
             best = max(borderScores.items(), key = lambda kv: kv[1])
@@ -247,8 +311,8 @@ class Player(base_player.BasePlayer):
             pass
 
     def chooseMove(self):
-        """
-        Decide what move to make based on current state of opponent's board and return it
+        """Decide what move to make based on current state of opponent's
+        board and return it.
         """
         decMv = (-1, -1)
 
@@ -313,13 +377,15 @@ class Player(base_player.BasePlayer):
         return decMv
 
     def setOutcome(self, entry, row, col):
-        """
-        entry: the outcome of your shot onto your opponent,
-               expected value is const.HIT for hit and const.MISSED for missed.
-        row: (int) the board row number (e.g. row A is 0)
-        col: (int) the board column (e.g. col 2 is represented by  value 3) so A3 case is (0,2)
-        """
+        """Update the opponent board with the outcome of our previous move.
 
+        Keyword arguments:
+        entry -- the outcome of your shot onto your opponent, expected value
+                 is const.HIT for hit and const.MISSED for missed
+        row -- the board row number (e.g. row A is 0)
+        col -- the board column (e.g. col 2 is represented by value 3)
+
+        """
         if entry == const.HIT:
             Outcome = const.HIT
         elif entry == const.MISSED:
@@ -330,11 +396,7 @@ class Player(base_player.BasePlayer):
         self._moves.append(((row, col), Outcome))
 
     def getOpponentMove(self, row, col):
-        """
-        You might like to keep track of where your opponent
-        has missed, but here we just acknowledge it. Note case A3 is
-        represented as row = 0, col = 2.
-        """
+        """Keep track of where the opponent is hitting."""
         if ((self._playerBoard[row][col] == const.OCCUPIED)
             or (self._playerBoard[row][col] == const.HIT)):
             # They may (stupidly) hit the same square twice so we check for occupied or hit
