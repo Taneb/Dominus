@@ -240,14 +240,17 @@ class Player(base_player.BasePlayer):
         border -- set of points adjacent to these hits
 
         """
-        def helperFunction(toCover, covered, scores, remaining):
+
+
+        borderScores = dict.fromkeys(border, 0)
+
+        def helperFunction(toCover, covered, remaining):
             """Recursive helper function to calculate the best point on the
             board to hit.
 
             Keyword arguments:
             toCover -- set of coords to cover
             covered -- set of coords already covered
-            scores -- dictionary of scores relating to the coords
             remaining -- remaining ships to check
 
             """
@@ -277,22 +280,17 @@ class Player(base_player.BasePlayer):
                                         break
 
                                 if valid:
-                                    scores = helperFunction(toCover - shape, covered | shape, scores, remaining[:].remove(shapePreOffset))
+                                    helperFunction(toCover - shape, covered | shape, remaining[:].remove(shapePreOffset))
 
-                    return scores
-
-                else:
-                    # no pieces left :(
-                    return scores
 
             else:
                 # FLAWLESS VICTORY!
                 # update the weightings
                 for coord in covered & border:
-                    scores[coord] += 1
-                return scores
+                    borderScores[coord] += 1
 
-        borderScores = helperFunction(hitRegion, frozenset(), dict.fromkeys(border,0), self.shapes[:])
+
+        helperFunction(hitRegion, frozenset(), self.shapes[:])
         try:
             best = max(borderScores.items(), key = lambda kv: kv[1])
             if best[1]:
