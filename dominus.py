@@ -2,6 +2,7 @@ import const
 import base_player
 from random import randint
 
+
 class Player(base_player.BasePlayer):
     """Dominus Blottleships AI implementation."""
 
@@ -10,9 +11,11 @@ class Player(base_player.BasePlayer):
         self._playerName = "Dominus"
         self._playerYear = "1"
         self._version = "Theta"
-        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
+        self._playerDescription = ("\"Dominus\" is Latin for Master."
+                                   "Good luck.\nBy Charles Pigott and"
+                                   "Nathan van Doorn")
 
-        self._moves = [] # Our previous moves
+        self._moves = []  # Previous moves
 
     def getRandPiece(self):
         """Get a random piece on the board."""
@@ -32,9 +35,13 @@ class Player(base_player.BasePlayer):
 
         """
         assert(type(cell) == tuple)
-        if cell[0] < 0  or cell[1] < 0:  return False
-        if cell[0] > 11 or cell[1] > 11: return False
-        if cell[0] < 6 and cell[1] > 5:  return False
+        if cell[0] < 0 or cell[1] < 0:
+            return False
+        if cell[0] > 11 or cell[1] > 11:
+            return False
+        if cell[0] < 6 and cell[1] > 5:
+            return False
+
         return True
 
     def getRotationFactor(self, rotation, i):
@@ -53,7 +60,7 @@ class Player(base_player.BasePlayer):
             return (-i[0], -i[1])
         if rotation == 3:
             return (i[1], -i[0])
-        raise IndexError # It's sort of an index error
+        raise IndexError  # It's sort of an index error
 
     def rotateShip(self, rotation, ship, base=(0, 0)):
         """Rotate a ship.
@@ -97,7 +104,8 @@ class Player(base_player.BasePlayer):
             success = True
             success = success and self.isValidCell(coord)
             success = success and self._playerBoard[coord[0]][coord[1]] == const.EMPTY
-            if not success: return False
+            if not success:
+                return False
 
             # Try not to connect ships together
             count = 0
@@ -108,14 +116,13 @@ class Player(base_player.BasePlayer):
                 count += 1
 
             # Don't bother trying to separate ships if it's too hard
-            if not success and count < 200: return False
+            if not success and count < 200:
+                return False
 
             successful.append(coord)
         for coord in successful:
             self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
-
-
 
     def deployFleet(self):
         """Place ship fleet on the board. """
@@ -125,11 +132,11 @@ class Player(base_player.BasePlayer):
         self._moves = []
 
         self.shapes = [
-            frozenset([(-1,  0), (0,  0), (0, -1), (0, 1), (1, -1), (1, 1)]), # Hovercraft
-            frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0,  1), (0, 2)]), # Aircraft Carrier
-            frozenset([( 0,  0), (0,  1), (0,  2), (0, 3)]), # Battleship
-            frozenset([( 0,  0), (0,  1), (0,  2)]), # Cruiser
-            frozenset([( 0,  0), (1,  0)]) # Destroyer
+            frozenset([(-1, 0), (0, 0), (0, -1), (0, 1), (1, -1), (1, 1)]),  # Hovercraft
+            frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0, 1), (0, 2)]),  # Aircraft Carrier
+            frozenset([(0, 0), (0, 1), (0, 2), (0, 3)]),  # Battleship
+            frozenset([(0, 0), (0, 1), (0, 2)]),  # Cruiser
+            frozenset([(0, 0), (1, 0)])  # Destroyer
         ]
 
         for ship in self.shapes:
@@ -189,7 +196,8 @@ class Player(base_player.BasePlayer):
                         if willBeTaken <= remPoints:
                             nextToDelShips = toDelShips[:]
                             nextToDelShips.append(thisShip0)
-                            res.append((remPoints - willBeTaken, toTestShips[:], nextToDelShips[:]))
+                            res.append((remPoints - willBeTaken,
+                                        toTestShips[:], nextToDelShips[:]))
             return [fin for state in res for fin in self.analyzeHitRegion(*state)]
 
         else:
@@ -224,7 +232,7 @@ class Player(base_player.BasePlayer):
                                     borderScores[coord] += 1
 
         try:
-            best = max(borderScores.items(), key = lambda kv: kv[1])
+            best = max(borderScores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
 
@@ -240,7 +248,6 @@ class Player(base_player.BasePlayer):
         border -- set of points adjacent to these hits
 
         """
-
 
         borderScores = dict.fromkeys(border, 0)
 
@@ -266,10 +273,9 @@ class Player(base_player.BasePlayer):
                     for shapePreOffset in self.shapes:
                         for pivx, pivy in shapePreOffset:
                             for orientation in range(4):
-                                shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x,y in shapePreOffset], base=c)
+                                shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=c)
 
                                 # make sure it fits
-
                                 valid = True
 
                                 for cx, cy in shape:
@@ -282,17 +288,15 @@ class Player(base_player.BasePlayer):
                                 if valid:
                                     helperFunction(toCover - shape, covered | shape, remaining[:].remove(shapePreOffset))
 
-
             else:
                 # FLAWLESS VICTORY!
                 # update the weightings
                 for coord in covered & border:
                     borderScores[coord] += 1
 
-
         helperFunction(hitRegion, frozenset(), self.shapes[:])
         try:
-            best = max(borderScores.items(), key = lambda kv: kv[1])
+            best = max(borderScores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
         except ValueError:
@@ -307,18 +311,22 @@ class Player(base_player.BasePlayer):
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
         if hitRegion:
-            # most likely situation is that these all form a single ship. However, there is an unavoidable possibility that they do not.
-            # we should first check to see whether it is possible to cover all these cells with a single ship.
-            # if we can, we should base solutions on that.
-            # if we cannot, or we can't move based on that (because, say, the hits form the exact shape of a larger ship)
-            # we should do something else
+            """
+            Most likely situation is that these all form a single ship.
+            However, there is an unavoidable possibility that they do not.
+            We should first check to see whether it is possible to cover all
+            these cells with a single ship. If we can, we should base
+            solutions on that. If we cannot, or we can't move based on that,
+            (because, say, the hits form the exact shape of a larger ship)
+            we should do something else.
+            """
 
             # Check previous moves for unchecked cells
-
             border = set()
 
             for decMv in [c for x in hitRegion for c in self.circleCell(x)]:
-                if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
+                if (self.isValidCell(decMv) and
+                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     border.add(decMv)
 
             oneShipCase = self.coverWithSingleShip(hitRegion, border)
@@ -351,7 +359,6 @@ class Player(base_player.BasePlayer):
                     bestProb = thisProb
                     decMv = (x, y)
 
-
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
         while (not self.isValidCell(decMv) or
@@ -361,7 +368,7 @@ class Player(base_player.BasePlayer):
                 decMv = (-1, -1)
 
         assert(self.isValidCell(decMv) and
-                self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
+               self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
         return decMv
 
     def setOutcome(self, entry, row, col):
@@ -386,12 +393,13 @@ class Player(base_player.BasePlayer):
     def getOpponentMove(self, row, col):
         """Keep track of where the opponent is hitting."""
         if ((self._playerBoard[row][col] == const.OCCUPIED)
-            or (self._playerBoard[row][col] == const.HIT)):
-            # They may (stupidly) hit the same square twice so we check for occupied or hit
+                or (self._playerBoard[row][col] == const.HIT)):
+            # They may hit the same square twice so check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
         else:
-            # You might like to keep track of where your opponent has missed, but here we just acknowledge it
+            # Acknowledge that the opponent missed
+            # Todo? Keep track of misses
             result = const.MISSED
         return result
 
