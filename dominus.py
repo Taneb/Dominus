@@ -1,3 +1,4 @@
+"""Dominus Blottleships AI"""
 import const
 import base_player
 from random import randint
@@ -34,7 +35,7 @@ class Player(base_player.BasePlayer):
         cell -- piece on the board to check
 
         """
-        assert(type(cell) == tuple)
+        assert type(cell) == tuple
         if cell[0] < 0 or cell[1] < 0:
             return False
         if cell[0] > 11 or cell[1] > 11:
@@ -85,7 +86,7 @@ class Player(base_player.BasePlayer):
         piece -- piece on the board
 
         """
-        assert(type(piece) == tuple)
+        assert type(piece) == tuple
         rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
         return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
 
@@ -168,7 +169,7 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
-    def analyzeHitRegion(self, remPoints, toTestShips, toDelShips=[]):
+    def analyzeHitRegion(self, remPoints, toTestShips, toDelShips):
         """Gets a list of ships that precisely cover a set of points.
 
         Keyword arguments:
@@ -248,7 +249,6 @@ class Player(base_player.BasePlayer):
         border -- set of points adjacent to these hits
 
         """
-
         borderScores = dict.fromkeys(border, 0)
 
         def helperFunction(toCover, covered, remaining):
@@ -261,41 +261,34 @@ class Player(base_player.BasePlayer):
             remaining -- remaining ships to check
 
             """
-            if toCover:
-                if remaining:
-                    # hacky way to get an arbitrary cell from toCover
-                    # if you know a better way please put it in
-                    checkingCell = None
-                    for c in toCover:
-                        checkingCell = c
-                        break
-
-                    for shapePreOffset in self.shapes:
-                        for pivx, pivy in shapePreOffset:
-                            for orientation in range(4):
-                                shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=c)
-
-                                # make sure it fits
-                                valid = True
-
-                                for cx, cy in shape:
-                                    valid = valid and self.isValidCell((cx, cy))
-                                    valid = valid and self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover
-                                    valid = valid and (cx, cy) not in covered
-                                    if not valid:
-                                        break
-
-                                if valid:
-                                    helperFunction(toCover - shape, covered | shape, remaining[:].remove(shapePreOffset))
-
-            else:
+            if not (toCover and remaining):
                 # FLAWLESS VICTORY!
-                # update the weightings
+                # Update the weightings
                 for coord in covered & border:
                     borderScores[coord] += 1
 
+            else:
+                for shapePreOffset in self.shapes:
+                    for pivx, pivy in shapePreOffset:
+                        for orientation in range(4):
+                            coord = next(iter(toCover))
+                            shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=coord)
+
+                            # make sure it fits
+                            valid = True
+                            for cx, cy in shape:
+                                valid = valid and self.isValidCell((cx, cy))
+                                valid = valid and self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover
+                                valid = valid and (cx, cy) not in covered
+                                if not valid:
+                                    break
+
+                            if valid:
+                                helperFunction(toCover - shape, covered | shape, remaining[:].remove(shapePreOffset))
+
         helperFunction(hitRegion, frozenset(), self.shapes[:])
         try:
+            print borderScores
             best = max(borderScores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
@@ -311,15 +304,13 @@ class Player(base_player.BasePlayer):
         hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
         if hitRegion:
-            """
-            Most likely situation is that these all form a single ship.
-            However, there is an unavoidable possibility that they do not.
-            We should first check to see whether it is possible to cover all
-            these cells with a single ship. If we can, we should base
-            solutions on that. If we cannot, or we can't move based on that,
-            (because, say, the hits form the exact shape of a larger ship)
-            we should do something else.
-            """
+            # Most likely situation is that these all form a single ship.
+            # However, there is an unavoidable possibility that they do not.
+            # We should first check to see whether it is possible to cover all
+            # these cells with a single ship. If we can, we should base
+            # solutions on that. If we cannot, or we can't move based on that,
+            # (because, say, the hits form the exact shape of a larger ship)
+            # we should do something else.
 
             # Check previous moves for unchecked cells
             border = set()
@@ -342,7 +333,7 @@ class Player(base_player.BasePlayer):
                 return multiShipCase
 
             # Otherwise stop looking for those shapes
-            for toDel in self.analyzeHitRegion(hitRegion, self.shapes[:])[0]:
+            for toDel in self.analyzeHitRegion(hitRegion, self.shapes[:], [])[0]:
                 self.shapes.remove(toDel)
 
             # Reset _moves because we've checked all the hits we care about.
