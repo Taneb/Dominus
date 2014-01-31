@@ -99,7 +99,7 @@ class Player(base_player.BasePlayer):
                                    "Nathan van Doorn")
 
         self._moves = []  # Previous moves
-        self.shapes = []
+        self.ships = []
 
     def makeShip(self, base, shape):
         """Place a ship on the board.
