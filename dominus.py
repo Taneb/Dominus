@@ -9,7 +9,7 @@ def getPlayer():
     return Player()
 
 
-def getRandCell():
+def get_rand_cell():
     """Get a random piece on the board."""
 
     row = randint(0, 11)
@@ -20,7 +20,7 @@ def getRandCell():
     return (row, col)
 
 
-def isValidCell(cell):
+def is_valid_cell(cell):
     """Check that a generated cell is valid on the board.
 
     Keyword arguments:
@@ -38,7 +38,7 @@ def isValidCell(cell):
     return True
 
 
-def getRotationFactor(rotation, cell):
+def get_rotation_factor(rotation, cell):
     """Rotate a cell (around (0, 0)).
 
     Keyword arguments:
@@ -57,7 +57,7 @@ def getRotationFactor(rotation, cell):
     raise IndexError  # It's sort of an index error
 
 
-def rotateShip(rotation, ship, base=(0, 0)):
+def rotate_ship(rotation, ship, base=(0, 0)):
     """Rotate a ship.
 
     Keyword arguments:
@@ -66,15 +66,15 @@ def rotateShip(rotation, ship, base=(0, 0)):
     base -- (default: (0, 0)
 
     """
-    rotShip = []
+    rot_ship = []
     for cx, cy in ship:
-        rx, ry = getRotationFactor(rotation, (cx, cy))
-        rotShip.append((base[0] + rx, base[1] + ry))
+        rx, ry = get_rotation_factor(rotation, (cx, cy))
+        rot_ship.append((base[0] + rx, base[1] + ry))
 
-    return frozenset(rotShip)
+    return frozenset(rot_ship)
 
 
-def circleCell(cell):
+def circle_cell(cell):
     """Get a list of cell that are adjacent to another piece.
 
     Keyword arguments:
@@ -100,7 +100,7 @@ class Player(base_player.BasePlayer):
         self._moves = []  # Previous moves
         self.ships = []
 
-    def makeShip(self, base, shape):
+    def make_ship(self, base, shape):
         """Place a ship on the board.
 
         Keyword arguments:
@@ -108,22 +108,22 @@ class Player(base_player.BasePlayer):
         shape -- ship to try placing
 
         """
-        rotShip = rotateShip(randint(0, 3), shape, base)
+        rot_ship = rotate_ship(randint(0, 3), shape, base)
 
         successful = []
-        for cell in rotShip:
+        for cell in rot_ship:
             success = True
-            success = success and isValidCell(cell)
+            success = success and is_valid_cell(cell)
             success = success and self._playerBoard[cell[0]][cell[1]] == const.EMPTY
             if not success:
                 return False
 
             # Try not to connect ships together
             count = 0
-            for adjCell in circleCell(cell):
-                success = success and (not isValidCell(adjCell) or
-                                       adjCell in successful or
-                                       self._playerBoard[adjCell[0]][adjCell[1]] == const.EMPTY)
+            for adj_cell in circle_cell(cell):
+                success = success and (not is_valid_cell(adj_cell) or
+                                       adj_cell in successful or
+                                       self._playerBoard[adj_cell[0]][adj_cell[1]] == const.EMPTY)
                 count += 1
 
             # Don't bother trying to separate ships if it's too hard
@@ -151,13 +151,13 @@ class Player(base_player.BasePlayer):
 
         for ship in self.ships:
             while True:
-                sp = getRandCell()
-                if self.makeShip(sp, ship):
+                sp = get_rand_cell()
+                if self.make_ship(sp, ship):
                     break
 
         return self._playerBoard
 
-    def countPossibilities(self, cell, shape):
+    def count_possibilities(self, cell, shape):
         """Count the number of possible ways the given shape could overlap
         with the given cell.
 
@@ -167,10 +167,10 @@ class Player(base_player.BasePlayer):
         count = 0
         for rotation in range(4):
             for px, py in shape:
-                shape2 = rotateShip(rotation, {(x - px, y - py) for x, y in shape}, cell)
+                shape2 = rotate_ship(rotation, {(x - px, y - py) for x, y in shape}, cell)
                 valid = True
                 for x, y in shape2:
-                    valid = valid and isValidCell((x, y))
+                    valid = valid and is_valid_cell((x, y))
                     valid = valid and self._opponenBoard[x][y] == const.EMPTY
                     if not valid:
                         break
@@ -178,126 +178,135 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
-    def analyzeHitRegion(self, remCells, toTestShips, toDelShips):
+    def analyse_hit_region(self, rem_cells, ships_to_test, ships_to_del):
         """Gets a list of ships that precisely cover a set of points.
 
         Keyword arguments:
-        remCells -- remaining cells to test
-        toTestShips -- ships still to test
-        toDelShips -- ships already used in the solution
+        rem_cells -- remaining cells to test
+        ships_to_test -- ships still to test
+        ships_to_del -- ships already used in the solution
 
         """
-        if not remCells:
+        if not rem_cells:
             # We've got there :)
-            return [toDelShips]
+            return [ships_to_del]
 
-        if toTestShips:
-            thisShip0 = toTestShips.pop()
+        if ships_to_test:
+            top_ship = ships_to_test.pop()
 
-            res = [(remCells, toTestShips[:], toDelShips[:])]
+            res = [(rem_cells, ships_to_test[:], ships_to_del[:])]
 
             for direction in range(4):
-                thisShip = rotateShip(direction, thisShip0)
+                rot_top_ship = rotate_ship(direction, top_ship)
 
-                for fx, fy in remCells:
-                    for ox, oy in thisShip:
-                        willBeTaken = {(fx - ox + px, fy - oy + py) for px, py in thisShip}
+                for fx, fy in rem_cells:
+                    for ox, oy in rot_top_ship:
+                        will_be_taken = {(fx - ox + px, fy - oy + py)
+                                         for px, py in rot_top_ship}
 
-                        if willBeTaken <= remCells:
-                            nextToDelShips = toDelShips[:]
-                            nextToDelShips.append(thisShip0)
-                            res.append((remCells - willBeTaken,
-                                        toTestShips[:], nextToDelShips[:]))
-            return [fin for state in res for fin in self.analyzeHitRegion(*state)]
+                        if will_be_taken <= rem_cells:
+                            next_to_del_ships = ships_to_del[:]
+                            next_to_del_ships.append(top_ship)
+                            res.append((rem_cells - will_be_taken,
+                                        ships_to_test[:],
+                                        next_to_del_ships[:]))
+            return [fin for state in res
+                    for fin in self.analyse_hit_region(*state)]
 
         else:
             return []
 
-    def coverWithSingleShip(self, hitRegion, border):
+    def cover_single_ship(self, hit_region, border):
         """Chooses the most likely cell in the border to be a hit, assuming
         that there is only one ship, where no others are adjacent to it.
 
         Keyword arguments:
-        hitRegion -- set of known hits
+        hit_region -- set of known hits
         border -- set of points adjacent to these hits
 
         """
-        borderScores = dict.fromkeys(border, 0)
+        border_scores = dict.fromkeys(border, 0)
 
-        for cell in hitRegion:
-            for shapePreRot in self.ships:
-                for px, py in shapePreRot:
+        for cell in hit_region:
+            for ship_pre_rot in self.ships:
+                for px, py in ship_pre_rot:
                     for orientation in range(4):
-                        shape = rotateShip(orientation, {(x - px, y - py) for x, y in shapePreRot}, base=cell)
+                        shape = rotate_ship(orientation,
+                                            {(x - px, y - py) for x, y in ship_pre_rot},
+                                            cell)
 
-                        if hitRegion <= shape:
+                        if hit_region <= shape:
 
                             valid = True
                             for cx, cy in shape:
-                                valid = valid and isValidCell((cx, cy))
-                                valid = valid and self._opponenBoard[cx][cy] != const.EMPTY or (cx, cy) in hitRegion
+                                valid = valid and is_valid_cell((cx, cy))
+                                valid = valid and (self._opponenBoard[cx][cy] != const.EMPTY or
+                                                  (cx, cy) in hit_region)
 
                             if valid:
                                 for coord in shape & border:
-                                    borderScores[coord] += 1
+                                    border_scores[coord] += 1
 
         try:
-            best = max(borderScores.items(), key=lambda kv: kv[1])
+            best = max(border_scores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
 
         except ValueError:
             pass
 
-    def coverWithMultipleShips(self, hitRegion, border):
+    def cover_multiple_ships(self, hit_region, border):
         """Chooses the most likely cell in the border to be a hit, assuming
         there are ships adjacent to each other.
 
         Keyword arguments:
-        hitRegion -- set of known hits
+        hit_region -- set of known hits
         border -- set of points adjacent to these hits
 
         """
-        borderScores = dict.fromkeys(border, 0)
+        border_scores = dict.fromkeys(border, 0)
 
-        def helperFunction(toCover, covered, remaining):
+        def helper_func(to_cover, covered, remaining):
             """Recursive helper function to calculate the best point on the
             board to hit.
 
             Keyword arguments:
-            toCover -- set of coords to cover
+            to_cover -- set of coords to cover
             covered -- set of coords already covered
             remaining -- remaining ships to check
 
             """
-            if not (toCover and remaining):
+            if not (to_cover and remaining):
                 # FLAWLESS VICTORY!
                 # Update the weightings
                 for coord in covered & border:
-                    borderScores[coord] += 1
+                    border_scores[coord] += 1
 
             else:
-                for shapePreOffset in self.ships:
-                    for pivx, pivy in shapePreOffset:
+                for ship_pre_offset in self.ships:
+                    for pivx, pivy in ship_pre_offset:
                         for orientation in range(4):
-                            coord = next(iter(toCover))
-                            shape = rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=coord)
+                            ship_pre_rot = [(x - pivx, y - pivy) for x, y in ship_pre_offset]
+                            shape = rotate_ship(orientation, ship_pre_rot,
+                                                next(iter(to_cover)))
 
                             # make sure it fits
                             valid = True
                             for cx, cy in shape:
-                                valid = valid and isValidCell((cx, cy))
-                                valid = valid and self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover
+                                valid = valid and is_valid_cell((cx, cy))
+                                valid = valid and (self._opponenBoard[cx][cy] == const.EMPTY
+                                                   or (cx, cy) in to_cover)
                                 valid = valid and (cx, cy) not in covered
                                 if not valid:
                                     break
 
                             if valid:
-                                helperFunction(toCover - shape, covered | shape, remaining[:].remove(shapePreOffset))
+                                helper_func(to_cover - shape, covered | shape,
+                                            remaining[:].remove(ship_pre_offset))
 
-        helperFunction(hitRegion, frozenset(), self.ships[:])
+        helper_func(hit_region, frozenset(), self.ships[:])
         try:
-            best = max(borderScores.items(), key=lambda kv: kv[1])
+            best = max(border_scores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
         except ValueError:
@@ -307,11 +316,11 @@ class Player(base_player.BasePlayer):
         """Decide what move to make based on current state of opponent's
         board and return it.
         """
-        decMv = (-1, -1)
+        dec_mv = (-1, -1)
 
-        hitRegion = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
+        hit_region = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
 
-        if hitRegion:
+        if hit_region:
             # Most likely situation is that these all form a single ship.
             # However, there is an unavoidable possibility that they do not.
             # We should first check to see whether it is possible to cover all
@@ -323,52 +332,53 @@ class Player(base_player.BasePlayer):
             # Check previous moves for unchecked cells
             border = set()
 
-            for decMv in [c for x in hitRegion for c in circleCell(x)]:
-                if (isValidCell(decMv) and
-                        self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
-                    border.add(decMv)
+            for cell_x, cell_y in [c for x in hit_region for c in circle_cell(x)]:
+                if (is_valid_cell((cell_x, cell_y)) and
+                        self._opponenBoard[cell_x][cell_y] == const.EMPTY):
+                    border.add(dec_mv)
 
-            oneShipCase = self.coverWithSingleShip(hitRegion, border)
-            if oneShipCase is not None:
-                return oneShipCase
+            single_ship_case = self.cover_single_ship(hit_region, border)
+            if single_ship_case is not None:
+                return single_ship_case
 
-            borderScores = dict.fromkeys(border, 0)
+            border_scores = dict.fromkeys(border, 0)
 
             # otherwise it's time to check the "More than one ship case"
 
-            multiShipCase = self.coverWithMultipleShips(hitRegion, border)
-            if multiShipCase is not None:
-                return multiShipCase
+            multi_ship_case = self.cover_multiple_ships(hit_region, border)
+            if multi_ship_case is not None:
+                return multi_ship_case
 
             # Otherwise stop looking for those shapes
-            for toDel in self.analyzeHitRegion(hitRegion, self.ships[:], [])[0]:
-                self.ships.remove(toDel)
+            for to_del in self.analyse_hit_region(hit_region,
+                                                  self.ships[:], [])[0]:
+                self.ships.remove(to_del)
 
             # Reset _moves because we've checked all the hits we care about.
             self._moves = []
 
         # Failing that, it's probability distribution time.
-        bestProb = 0
+        best_prob = 0
         for x in range(12):
             for y in range(len(self._opponenBoard[x])):
-                thisProb = 0
+                this_prob = 0
                 for shape in self.ships:
-                    thisProb += self.countPossibilities((x, y), shape)
-                if thisProb > bestProb:
-                    bestProb = thisProb
-                    decMv = (x, y)
+                    this_prob += self.count_possibilities((x, y), shape)
+                if this_prob > best_prob:
+                    best_prob = this_prob
+                    dec_mv = (x, y)
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
-        while (not isValidCell(decMv) or
-                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
-            decMv = getRandCell()
-            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
-                decMv = (-1, -1)
+        while (not is_valid_cell(dec_mv) or
+                self._opponenBoard[dec_mv[0]][dec_mv[1]] != const.EMPTY):
+            dec_mv = get_rand_cell()
+            if count < 50 and (dec_mv[0] + dec_mv[1]) % 2 != 0:
+                dec_mv = (-1, -1)
 
-        assert(isValidCell(decMv) and
-               self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
-        return decMv
+        assert(is_valid_cell(dec_mv) and
+               self._opponenBoard[dec_mv[0]][dec_mv[1]] == const.EMPTY)
+        return dec_mv
 
     def setOutcome(self, entry, row, col):
         """Update the opponent board with the outcome of our previous move.
@@ -380,14 +390,12 @@ class Player(base_player.BasePlayer):
         col -- the board column (e.g. col 2 is represented by value 3)
 
         """
+        outcome = const.MISSED
         if entry == const.HIT:
-            Outcome = const.HIT
-        elif entry == const.MISSED:
-            Outcome = const.MISSED
-        else:
-            raise Exception("Invalid input!")
-        self._opponenBoard[row][col] = Outcome
-        self._moves.append(((row, col), Outcome))
+            outcome = const.HIT
+
+        self._opponenBoard[row][col] = outcome
+        self._moves.append(((row, col), outcome))
 
     def getOpponentMove(self, row, col):
         """Keep track of where the opponent is hitting."""
@@ -401,4 +409,3 @@ class Player(base_player.BasePlayer):
             # Todo? Keep track of misses
             result = const.MISSED
         return result
-
