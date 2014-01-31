@@ -4,6 +4,88 @@ import base_player
 from random import randint
 
 
+def getPlayer():
+    """ MUST NOT be changed, used to get a instance of the class."""
+    return Player()
+
+
+def getRandPiece():
+    """Get a random piece on the board."""
+
+    row = randint(0, 11)
+    # Board is a weird L shape
+    col = randint(0, 5 if row < 6 else 11)
+    # Return move in row (letter) + col (number) grid reference
+    # e.g. A3 is represented as 0,2
+    return (row, col)
+
+
+def isValidCell(cell):
+    """Check that a generated cell is valid on the board.
+
+    Keyword arguments:
+    cell -- piece on the board to check
+
+    """
+    assert type(cell) == tuple
+    if cell[0] < 0 or cell[1] < 0:
+        return False
+    if cell[0] > 11 or cell[1] > 11:
+        return False
+    if cell[0] < 6 and cell[1] > 5:
+        return False
+
+    return True
+
+
+def getRotationFactor(rotation, i):
+    """Rotate a piece (around (0, 0)).
+
+    Keyword arguments:
+    rotation -- arbitrary rotation factor
+    i -- piece of the board to rotate
+
+    """
+    if rotation == 0:
+        return i
+    if rotation == 1:
+        return (i[1], i[0])
+    if rotation == 2:
+        return (-i[0], -i[1])
+    if rotation == 3:
+        return (i[1], -i[0])
+    raise IndexError  # It's sort of an index error
+
+
+def rotateShip(rotation, ship, base=(0, 0)):
+    """Rotate a ship.
+
+    Keyword arguments:
+    rotation -- arbitrary rotation factor
+    ship -- ship to rotate
+    base -- (default: (0, 0)
+
+    """
+    rotShip = []
+    for cx, cy in ship:
+        rx, ry = getRotationFactor(rotation, (cx, cy))
+        rotShip.append((base[0] + rx, base[1] + ry))
+
+    return frozenset(rotShip)
+
+
+def circleCell(piece):
+    """Get a list of pieces that are adjacent to another piece.
+
+    Keyword arguments:
+    piece -- piece on the board
+
+    """
+    assert type(piece) == tuple
+    rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+    return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+
+
 class Player(base_player.BasePlayer):
     """Dominus Blottleships AI implementation."""
 
@@ -18,78 +100,6 @@ class Player(base_player.BasePlayer):
 
         self._moves = []  # Previous moves
 
-    def getRandPiece(self):
-        """Get a random piece on the board."""
-
-        row = randint(0, 11)
-        # Board is a weird L shape
-        col = randint(0, 5 if row < 6 else 11)
-        # Return move in row (letter) + col (number) grid reference
-        # e.g. A3 is represented as 0,2
-        return (row, col)
-
-    def isValidCell(self, cell):
-        """Check that a generated cell is valid on the board.
-
-        Keyword arguments:
-        cell -- piece on the board to check
-
-        """
-        assert type(cell) == tuple
-        if cell[0] < 0 or cell[1] < 0:
-            return False
-        if cell[0] > 11 or cell[1] > 11:
-            return False
-        if cell[0] < 6 and cell[1] > 5:
-            return False
-
-        return True
-
-    def getRotationFactor(self, rotation, i):
-        """Rotate a piece (around (0, 0)).
-
-        Keyword arguments:
-        rotation -- arbitrary rotation factor
-        i -- piece of the board to rotate
-
-        """
-        if rotation == 0:
-            return i
-        if rotation == 1:
-            return (i[1], i[0])
-        if rotation == 2:
-            return (-i[0], -i[1])
-        if rotation == 3:
-            return (i[1], -i[0])
-        raise IndexError  # It's sort of an index error
-
-    def rotateShip(self, rotation, ship, base=(0, 0)):
-        """Rotate a ship.
-
-        Keyword arguments:
-        rotation -- arbitrary rotation factor
-        ship -- ship to rotate
-        base -- (default: (0, 0)
-
-        """
-        rotShip = []
-        for cx, cy in ship:
-            rx, ry = self.getRotationFactor(rotation, (cx, cy))
-            rotShip.append((base[0] + rx, base[1] + ry))
-
-        return frozenset(rotShip)
-
-    def circleCell(self, piece):
-        """Get a list of pieces that are adjacent to another piece.
-
-        Keyword arguments:
-        piece -- piece on the board
-
-        """
-        assert type(piece) == tuple
-        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
-
     def makeShip(self, base, shape):
         """Place a ship on the board.
 
@@ -98,20 +108,20 @@ class Player(base_player.BasePlayer):
         shape -- ship to try placing
 
         """
-        rotShip = self.rotateShip(randint(0, 3), shape, base)
+        rotShip = rotateShip(randint(0, 3), shape, base)
 
         successful = []
         for coord in rotShip:
             success = True
-            success = success and self.isValidCell(coord)
+            success = success and isValidCell(coord)
             success = success and self._playerBoard[coord[0]][coord[1]] == const.EMPTY
             if not success:
                 return False
 
             # Try not to connect ships together
             count = 0
-            for cell in self.circleCell(coord):
-                success = success and (not self.isValidCell(cell) or
+            for cell in circleCell(coord):
+                success = success and (not isValidCell(cell) or
                                        cell in successful or
                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
                 count += 1
@@ -142,7 +152,7 @@ class Player(base_player.BasePlayer):
 
         for ship in self.shapes:
             while True:
-                sp = self.getRandPiece()
+                sp = getRandPiece()
                 if self.makeShip(sp, ship):
                     break
 
@@ -158,10 +168,10 @@ class Player(base_player.BasePlayer):
         count = 0
         for rotation in xrange(4):
             for px, py in shape:
-                shape2 = self.rotateShip(rotation, {(x - px, y - py) for x, y in shape}, coord)
+                shape2 = rotateShip(rotation, {(x - px, y - py) for x, y in shape}, coord)
                 valid = True
                 for x, y in shape2:
-                    valid = valid and self.isValidCell((x, y))
+                    valid = valid and isValidCell((x, y))
                     valid = valid and self._opponenBoard[x][y] == const.EMPTY
                     if not valid:
                         break
@@ -188,7 +198,7 @@ class Player(base_player.BasePlayer):
             res = [(remPoints, toTestShips[:], toDelShips[:])]
 
             for direction in range(4):
-                thisShip = self.rotateShip(direction, thisShip0)
+                thisShip = rotateShip(direction, thisShip0)
 
                 for fx, fy in remPoints:
                     for ox, oy in thisShip:
@@ -219,13 +229,13 @@ class Player(base_player.BasePlayer):
             for shapePreRot in self.shapes:
                 for px, py in shapePreRot:
                     for orientation in range(4):
-                        shape = self.rotateShip(orientation, {(x - px, y - py) for x, y in shapePreRot}, base=cell)
+                        shape = rotateShip(orientation, {(x - px, y - py) for x, y in shapePreRot}, base=cell)
 
                         if hitRegion <= shape:
 
                             valid = True
                             for cx, cy in shape:
-                                valid = valid and self.isValidCell((cx, cy))
+                                valid = valid and isValidCell((cx, cy))
                                 valid = valid and self._opponenBoard[cx][cy] != const.EMPTY or (cx, cy) in hitRegion
 
                             if valid:
@@ -272,12 +282,12 @@ class Player(base_player.BasePlayer):
                     for pivx, pivy in shapePreOffset:
                         for orientation in range(4):
                             coord = next(iter(toCover))
-                            shape = self.rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=coord)
+                            shape = rotateShip(orientation, [(x - pivx, y - pivy) for x, y in shapePreOffset], base=coord)
 
                             # make sure it fits
                             valid = True
                             for cx, cy in shape:
-                                valid = valid and self.isValidCell((cx, cy))
+                                valid = valid and isValidCell((cx, cy))
                                 valid = valid and self._opponenBoard[cx][cy] == const.EMPTY or (cx, cy) in toCover
                                 valid = valid and (cx, cy) not in covered
                                 if not valid:
@@ -288,7 +298,6 @@ class Player(base_player.BasePlayer):
 
         helperFunction(hitRegion, frozenset(), self.shapes[:])
         try:
-            print borderScores
             best = max(borderScores.items(), key=lambda kv: kv[1])
             if best[1]:
                 return best[0]
@@ -315,8 +324,8 @@ class Player(base_player.BasePlayer):
             # Check previous moves for unchecked cells
             border = set()
 
-            for decMv in [c for x in hitRegion for c in self.circleCell(x)]:
-                if (self.isValidCell(decMv) and
+            for decMv in [c for x in hitRegion for c in circleCell(x)]:
+                if (isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     border.add(decMv)
 
@@ -352,13 +361,13 @@ class Player(base_player.BasePlayer):
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
-        while (not self.isValidCell(decMv) or
+        while (not isValidCell(decMv) or
                 self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
-            decMv = self.getRandPiece()
+            decMv = getRandPiece()
             if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
                 decMv = (-1, -1)
 
-        assert(self.isValidCell(decMv) and
+        assert(isValidCell(decMv) and
                self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
         return decMv
 
@@ -394,7 +403,3 @@ class Player(base_player.BasePlayer):
             result = const.MISSED
         return result
 
-
-def getPlayer():
-    """ MUST NOT be changed, used to get a instance of your class."""
-    return Player()
