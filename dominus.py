@@ -166,7 +166,7 @@ class Player(base_player.BasePlayer):
         shape -- ship to try placing
         """
         count = 0
-        for rotation in xrange(4):
+        for rotation in range(4):
             for px, py in shape:
                 shape2 = rotateShip(rotation, {(x - px, y - py) for x, y in shape}, cell)
                 valid = True
