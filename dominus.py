@@ -99,6 +99,7 @@ class Player(base_player.BasePlayer):
                                    "Nathan van Doorn")
 
         self._moves = []  # Previous moves
+        self.shapes = []
 
     def makeShip(self, base, shape):
         """Place a ship on the board.
@@ -139,9 +140,8 @@ class Player(base_player.BasePlayer):
         """Place ship fleet on the board. """
         self._initBoards()
 
-        # Reset moves each game
+        # Reset some variables each game
         self._moves = []
-
         self.shapes = [
             frozenset([(-1, 0), (0, 0), (0, -1), (0, 1), (1, -1), (1, 1)]),  # Hovercraft
             frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0, 1), (0, 2)]),  # Aircraft Carrier
