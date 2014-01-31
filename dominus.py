@@ -93,7 +93,7 @@ class Player(base_player.BasePlayer):
         base_player.BasePlayer.__init__(self)
         self._playerName = "Dominus"
         self._playerYear = "1"
-        self._version = "Theta"
+        self._version = "Gamma"
         self._playerDescription = ("\"Dominus\" is Latin for Master."
                                    "Good luck.\nBy Charles Pigott and"
                                    "Nathan van Doorn")
