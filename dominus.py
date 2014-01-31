@@ -38,22 +38,22 @@ def isValidCell(cell):
     return True
 
 
-def getRotationFactor(rotation, i):
-    """Rotate a piece (around (0, 0)).
+def getRotationFactor(rotation, cell):
+    """Rotate a cell (around (0, 0)).
 
     Keyword arguments:
     rotation -- arbitrary rotation factor
-    i -- piece of the board to rotate
+    cell -- cell from the board to rotate
 
     """
     if rotation == 0:
-        return i
+        return cell
     if rotation == 1:
-        return (i[1], i[0])
+        return (cell[1], cell[0])
     if rotation == 2:
-        return (-i[0], -i[1])
+        return (-cell[0], -cell[1])
     if rotation == 3:
-        return (i[1], -i[0])
+        return (cell[1], -cell[0])
     raise IndexError  # It's sort of an index error
 
 
@@ -74,16 +74,15 @@ def rotateShip(rotation, ship, base=(0, 0)):
     return frozenset(rotShip)
 
 
-def circleCell(piece):
-    """Get a list of pieces that are adjacent to another piece.
+def circleCell(cell):
+    """Get a list of cell that are adjacent to another piece.
 
     Keyword arguments:
-    piece -- piece on the board
+    cell -- cell from the board
 
     """
-    assert type(piece) == tuple
     rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-    return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+    return [(cell[0] + offset[0], cell[1] + offset[1]) for offset in rotate]
 
 
 class Player(base_player.BasePlayer):
