@@ -168,13 +168,13 @@ class Player(base_player.BasePlayer):
         for rotation in range(4):
             for px, py in shape:
                 shape2 = rotate_ship(rotation, {(x - px, y - py) for x, y in shape}, cell)
-                valid = True
+
                 for x, y in shape2:
-                    valid = valid and is_valid_cell((x, y))
-                    valid = valid and self._opponenBoard[x][y] == const.EMPTY
-                    if not valid:
+                    if not is_valid_cell((x, y)):
                         break
-                if valid:
+                    if self._opponenBoard[x][y] != const.EMPTY:
+                        break
+                else:
                     count += 1
         return count
 
@@ -237,13 +237,13 @@ class Player(base_player.BasePlayer):
 
                         if hit_region <= shape:
 
-                            valid = True
                             for cx, cy in shape:
-                                valid = valid and is_valid_cell((cx, cy))
-                                valid = valid and (self._opponenBoard[cx][cy] != const.EMPTY or
-                                                  (cx, cy) in hit_region)
-
-                            if valid:
+                                if not is_valid_cell((cx, cy)):
+                                    break
+                                if (self._opponenBoard[cx][cy] != const.EMPTY and
+                                        (cx, cy) not in hit_region):
+                                    break
+                            else:
                                 for coord in shape & border:
                                     border_scores[coord] += 1
 
@@ -290,17 +290,16 @@ class Player(base_player.BasePlayer):
                             shape = rotate_ship(orientation, ship_pre_rot,
                                                 next(iter(to_cover)))
 
-                            # make sure it fits
-                            valid = True
+                            # Make sure it fits
                             for cx, cy in shape:
-                                valid = valid and is_valid_cell((cx, cy))
-                                valid = valid and (self._opponenBoard[cx][cy] == const.EMPTY
-                                                   or (cx, cy) in to_cover)
-                                valid = valid and (cx, cy) not in covered
-                                if not valid:
+                                if not is_valid_cell((cx, cy)):
                                     break
-
-                            if valid:
+                                if (self._opponenBoard[cx][cy] != const.EMPTY and
+                                        (cx, cy) not in to_cover):
+                                    break
+                                if (cx, cy) in covered:
+                                    break
+                            else:
                                 helper_func(to_cover - shape, covered | shape,
                                             remaining[:].remove(ship_pre_offset))
 
