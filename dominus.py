@@ -334,7 +334,7 @@ class Player(base_player.BasePlayer):
             for cell_x, cell_y in [c for x in hit_region for c in circle_cell(x)]:
                 if (is_valid_cell((cell_x, cell_y)) and
                         self._opponenBoard[cell_x][cell_y] == const.EMPTY):
-                    border.add(dec_mv)
+                    border.add((cell_x, cell_y))
 
             single_ship_case = self.cover_single_ship(hit_region, border)
             if single_ship_case is not None:
