@@ -84,6 +84,19 @@ def circle_cell(cell):
     rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
     return [(cell[0] + offset[0], cell[1] + offset[1]) for offset in rotate]
 
+def without(sequence, value):
+    """
+    utility function to return a sequence with the first occurence of the given
+    value removed.
+    Similar to list.remove but copies the list and returns the result.
+
+    sequence -- the sequence to remove from
+    value -- the value to remove
+
+    """
+    s2 = sequence[:]
+    s2.remove(value)
+    return s2
 
 class Player(base_player.BasePlayer):
     """Dominus Blottleships AI implementation."""
@@ -276,7 +289,7 @@ class Player(base_player.BasePlayer):
             remaining -- remaining ships to check
 
             """
-            if not (to_cover and remaining):
+            if not to_cover:
                 # FLAWLESS VICTORY!
                 # Update the weightings
                 for coord in covered & border:
@@ -284,6 +297,8 @@ class Player(base_player.BasePlayer):
 
             else:
                 for ship_pre_offset in self.ships:
+                    if ship_pre_offset not in remaining:
+                        continue
                     for pivx, pivy in ship_pre_offset:
                         for orientation in range(4):
                             ship_pre_rot = [(x - pivx, y - pivy) for x, y in ship_pre_offset]
@@ -301,7 +316,7 @@ class Player(base_player.BasePlayer):
                                     break
                             else:
                                 helper_func(to_cover - shape, covered | shape,
-                                            remaining[:].remove(ship_pre_offset))
+                                            without(remaining,ship_pre_offset))
 
         helper_func(hit_region, frozenset(), self.ships[:])
         try:
