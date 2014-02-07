@@ -16,9 +16,10 @@ class Player(base_player.BasePlayer):
         base_player.BasePlayer.__init__(self)
         self._playerName = "DominusWallpaper"
         self._playerYear = "1"
-        self._version = "Beta"
+        self._version = "Gamma"
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
+        self._space_apart = True # whether we should space ships apart or not
         self._moves = [] # Our previous moves
 
     def getRandPiece(self):
@@ -106,16 +107,17 @@ class Player(base_player.BasePlayer):
             success = success and self._playerBoard[coord[0]][coord[1]] == const.EMPTY
             if not success: return False
 
-            # Try not to connect ships together
-            count = 0
-            for cell in self.circleCell(coord):
-                success = success and (not self.isValidCell(cell) or
-                                       cell in successful or
-                                       self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
-                count += 1
+            if self._space_apart:
+                # Try not to connect ships together
+                count = 0
+                for cell in self.circleCell(coord):
+                    success = success and (not self.isValidCell(cell) or
+                                           cell in successful or
+                                           self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
+                    count += 1
 
-            # Don't bother trying to separate ships if it's too hard
-            if not success and count < 200: return False
+                # Don't bother trying to separate ships if it's too hard
+                if not success and count < 200: return False
 
             successful.append(coord)
         for coord in successful:
@@ -131,6 +133,7 @@ class Player(base_player.BasePlayer):
         self._initBoards()
 
         # Reset moves each game
+        self._hit_count = 0
         self._moves = []
         self.floodfilling = False
 
@@ -424,6 +427,9 @@ class Player(base_player.BasePlayer):
             # They may (stupidly) hit the same square twice so we check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
+            self._hit_count += 1
+            if self._hit_count == 21:
+                self._space_apart = not self._space_apart
         else:
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
