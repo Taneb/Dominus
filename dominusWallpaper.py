@@ -21,6 +21,7 @@ class Player(base_player.BasePlayer):
 
         self._space_apart = True # whether we should space ships apart or not
         self._moves = [] # Our previous moves
+        self._hit_delta = 0 # TODO explain hit delta
 
     def getRandPiece(self):
         """Get a random piece on the board."""
@@ -129,11 +130,13 @@ class Player(base_player.BasePlayer):
     def deployFleet(self):
         """Place ship fleet on the board. """
 
+        if self._hit_delta >= 3:
+            self._space_apart = not self._space_apart
         self.shapes = allShips[:]
         self._initBoards()
 
         # Reset moves each game
-        self._hit_count = 0
+        self._hit_delta = 0
         self._moves = []
         self.floodfilling = False
 
@@ -412,6 +415,7 @@ class Player(base_player.BasePlayer):
 
         """
         if entry == const.HIT:
+            self._hit_delta -= 1
             Outcome = const.HIT
         elif entry == const.MISSED:
             Outcome = const.MISSED
@@ -427,9 +431,8 @@ class Player(base_player.BasePlayer):
             # They may (stupidly) hit the same square twice so we check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
-            self._hit_count += 1
-            if self._hit_count == 21:
-                self._space_apart = not self._space_apart
+            self._hit_delta += 1
+
         else:
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED

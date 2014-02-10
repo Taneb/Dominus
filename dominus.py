@@ -110,7 +110,9 @@ class Player(base_player.BasePlayer):
                                    "Good luck.\nBy Charles Pigott and"
                                    "Nathan van Doorn")
 
+        self._space_apart = True # whether we should space ships apart or not
         self._moves = []  # Previous moves
+        self._hit_delta = 0 # How far ahead of the opponent we are in this game
         self.ships = []
 
     def make_ship(self, base, shape):
@@ -131,17 +133,18 @@ class Player(base_player.BasePlayer):
             if not success:
                 return False
 
-            # Try not to connect ships together
-            count = 0
-            for adj_cell in circle_cell(cell):
-                success = success and (not is_valid_cell(adj_cell) or
-                                       adj_cell in successful or
-                                       self._playerBoard[adj_cell[0]][adj_cell[1]] == const.EMPTY)
-                count += 1
+            if self._space_apart:
+                # Try not to connect ships together
+                count = 0
+                for adj_cell in circle_cell(cell):
+                    success = success and (not is_valid_cell(adj_cell) or
+                                           adj_cell in successful or
+                                           self._playerBoard[adj_cell[0]][adj_cell[1]] == const.EMPTY)
+                    count += 1
 
-            # Don't bother trying to separate ships if it's too hard
-            if not success and count < 200:
-                return False
+                # Don't bother trying to separate ships if it's too hard
+                if not success and count < 200:
+                    return False
 
             successful.append(cell)
         for cx, cy in successful:
@@ -150,7 +153,8 @@ class Player(base_player.BasePlayer):
 
     def deployFleet(self):
         """Place ship fleet on the board. """
-        self._initBoards()
+        if self._hit_delta >= 3:
+            self._space_apart = not self._space_apart
 
         # Reset some variables each game
         self._moves = []
@@ -161,6 +165,8 @@ class Player(base_player.BasePlayer):
             frozenset([(0, 0), (0, 1), (0, 2)]),  # Cruiser
             frozenset([(0, 0), (1, 0)])  # Destroyer
         ]
+
+        self._initBoards()
 
         for ship in self.ships:
             while True:
@@ -403,6 +409,7 @@ class Player(base_player.BasePlayer):
         """
         outcome = const.MISSED
         if entry == const.HIT:
+            self._hit_delta -= 1
             outcome = const.HIT
 
         self._opponenBoard[row][col] = outcome
@@ -415,6 +422,7 @@ class Player(base_player.BasePlayer):
             # They may hit the same square twice so check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
+            self._hit_delta += 1
         else:
             # Acknowledge that the opponent missed
             # Todo? Keep track of misses
