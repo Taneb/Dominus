@@ -269,7 +269,7 @@ class Player(base_player.BasePlayer):
             pass
 
     def cover_multiple_ships(self, hit_region, border):
-        """Chooses the most likely cell in the border to be a hit, assuming
+        """Chooses a possible cell in the border to be a hit, assuming
         there are ships adjacent to each other.
 
         Keyword arguments:
@@ -277,8 +277,6 @@ class Player(base_player.BasePlayer):
         border -- set of points adjacent to these hits
 
         """
-        border_scores = dict.fromkeys(border, 0)
-
         def helper_func(to_cover, covered, remaining):
             """Recursive helper function to calculate the best point on the
             board to hit.
@@ -293,7 +291,7 @@ class Player(base_player.BasePlayer):
                 # FLAWLESS VICTORY!
                 # Update the weightings
                 for coord in covered & border:
-                    border_scores[coord] += 1
+                    return coord
 
             else:
                 for ship_pre_offset in self.ships:
@@ -301,7 +299,8 @@ class Player(base_player.BasePlayer):
                         continue
                     for pivx, pivy in ship_pre_offset:
                         for orientation in range(4):
-                            ship_pre_rot = [(x - pivx, y - pivy) for x, y in ship_pre_offset]
+                            ship_pre_rot = [(x - pivx, y - pivy)
+                                            for x, y in ship_pre_offset]
                             shape = rotate_ship(orientation, ship_pre_rot,
                                                 next(iter(to_cover)))
 
@@ -315,16 +314,14 @@ class Player(base_player.BasePlayer):
                                 if (cx, cy) in covered:
                                     break
                             else:
-                                helper_func(to_cover - shape, covered | shape,
-                                            without(remaining,ship_pre_offset))
+                                res = helper_func(to_cover - shape,
+                                                  covered | shape,
+                                                  without(remaining,
+                                                          ship_pre_offset))
+                                if res is not None:
+                                    return res
 
-        helper_func(hit_region, frozenset(), self.ships[:])
-        try:
-            best = max(border_scores.items(), key=lambda kv: kv[1])
-            if best[1]:
-                return best[0]
-        except ValueError:
-            pass
+        return helper_func(hit_region, frozenset(), self.ships[:])
 
     def chooseMove(self):
         """Decide what move to make based on current state of opponent's
