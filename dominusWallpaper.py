@@ -21,7 +21,7 @@ class Player(base_player.BasePlayer):
 
         self._space_apart = True # whether we should space ships apart or not
         self._moves = [] # Our previous moves
-        self._hit_delta = 0 # TODO explain hit delta
+        self._hit_delta = 0 # How far ahead of the opponent we are in this game
 
     def getRandPiece(self):
         """Get a random piece on the board."""
