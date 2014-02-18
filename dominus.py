@@ -295,9 +295,10 @@ class Player(base_player.BasePlayer):
             """
             if not to_cover:
                 # FLAWLESS VICTORY!
-                # Update the weightings
-                for coord in covered & border:
-                    return coord
+                # returns one of the possibilities
+                res = list(covered & border)
+                if res:
+                    return res[0]
 
             else:
                 for ship_pre_offset in self.ships:
