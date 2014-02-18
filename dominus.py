@@ -49,7 +49,7 @@ def get_rotation_factor(rotation, cell):
     if rotation == 0:
         return cell
     if rotation == 1:
-        return (cell[1], cell[0])
+        return (-cell[1], cell[0])
     if rotation == 2:
         return (-cell[0], -cell[1])
     if rotation == 3:
