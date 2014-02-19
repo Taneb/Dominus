@@ -3,6 +3,11 @@ import const
 import base_player
 from random import randint
 
+shape_D = frozenset([(0,0),(0,1)])
+shape_C = frozenset([(0,0),(0,1),(0,2)])
+shape_B = frozenset([(0,0),(0,1),(0,2),(0,3)])
+shape_A = frozenset([(0,0),(1,0),(2,0),(1,1),(1,2),(1,3)])
+shape_H = frozenset([(0,0),(2,0),(0,1),(1,1),(2,1),(1,2)])
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of the class."""
@@ -123,6 +128,8 @@ class Player(base_player.BasePlayer):
         shape -- ship to try placing
 
         """
+
+
         rot_ship = rotate_ship(randint(0, 3), shape, base)
 
         successful = []
@@ -159,12 +166,14 @@ class Player(base_player.BasePlayer):
         # Reset some variables each game
         self._moves = []
         self.ships = [
-            frozenset([(-1, 0), (0, 0), (0, -1), (0, 1), (1, -1), (1, 1)]),  # Hovercraft
-            frozenset([(-1, -1), (1, -1), (0, -1), (0, 0), (0, 1), (0, 2)]),  # Aircraft Carrier
-            frozenset([(0, 0), (0, 1), (0, 2), (0, 3)]),  # Battleship
-            frozenset([(0, 0), (0, 1), (0, 2)]),  # Cruiser
-            frozenset([(0, 0), (1, 0)])  # Destroyer
+            shape_H,
+            shape_A,
+            shape_B,
+            shape_C,
+            shape_D
         ]
+
+
 
         self._initBoards()
 
@@ -197,6 +206,76 @@ class Player(base_player.BasePlayer):
                     count += 1
         return count
 
+    def outer_analyse(self, hit_region):
+        n = len(hit_region)
+        res = None
+        if n == 0:
+            res = [[]]
+        elif n == 2:
+            res = [[shape_D]]
+        elif n == 3:
+            res = [[shape_C]]
+        elif n == 5:
+            res = [[shape_D,shape_C]]
+        elif n == 4:
+            res = [[shape_B]]
+        elif n == 6:
+            res = [[shape_D,shape_B],[shape_A],[shape_H]]
+        elif n == 7:
+            res = [[shape_C,shape_B]]
+        elif n == 8:
+            res = [[shape_D,shape_A],[shape_D,shape_H]]
+        elif n == 9:
+            res = [[shape_D,shape_C,shape_B],[shape_C,shape_A],[shape_C,shape_H]]
+        elif n == 10:
+            res = [[shape_B,shape_A],[shape_B,shape_H]]
+        elif n == 11:
+            res = [[shape_D,shape_C,shape_A],[shape_D,shape_C,shape_H]]
+        elif n == 12:
+            res = [[shape_D,shape_B,shape_A],[shape_D,shape_B,shape_H],[shape_A,shape_H]]
+        elif n == 13:
+            res = [[shape_C,shape_B,shape_A],[shape_C,shape_B,shape_H]]
+        elif n == 14:
+            res = [[shape_D,shape_A,shape_H]]
+        elif n == 15:
+            res = [[shape_D,shape_C,shape_B,shape_A],[shape_D,shape_C,shape_B,shape_H],[shape_C,shape_A,shape_H]]
+        elif n == 16:
+            res = [[shape_B,shape_A,shape_H]]
+        elif n == 17:
+            res = [[shape_D,shape_C,shape_A,shape_H]]
+        elif n == 18:
+            res = [[shape_D,shape_B,shape_A,shape_H]]
+        elif n == 19:
+            res = [[shape_C,shape_B,shape_A,shape_H]]
+        elif n == 21:
+            res = [[shape_D,shape_C,shape_B,shape_A,shape_H]]
+        else:
+            raise ValueError
+
+
+
+        res = filter(lambda shapes: all([shape in self.ships for shape in shapes]), res)
+
+        if len(res) == 1:
+            return res[0]
+
+        elif len(res) == 0:
+            raise ValueError
+
+        else:
+            return self.new_analyse_hit_region(res, hit_region)
+
+    def new_analyse_hit_region(self, possibilities, hit_region):
+
+        for possibility in possibilities:
+            try:
+                self.analyse_hit_region(hit_region, possibility[:], [])[0]
+                return possibility
+            except IndexError:
+                pass
+            except ValueError:
+                pass
+
     def analyse_hit_region(self, rem_cells, ships_to_test, ships_to_del):
         """Gets a list of ships that precisely cover a set of points.
 
@@ -213,7 +292,8 @@ class Player(base_player.BasePlayer):
         if ships_to_test:
             top_ship = ships_to_test.pop()
 
-            res = [(rem_cells, ships_to_test[:], ships_to_del[:])]
+
+            res = []
 
             for direction in range(4):
                 rot_top_ship = rotate_ship(direction, top_ship)
@@ -368,8 +448,8 @@ class Player(base_player.BasePlayer):
                 return multi_ship_case
 
             # Otherwise stop looking for those shapes
-            for to_del in self.analyse_hit_region(hit_region,
-                                                  self.ships[:], [])[0]:
+            for to_del in self.outer_analyse(hit_region):
+
                 self.ships.remove(to_del)
 
             # Reset _moves because we've checked all the hits we care about.
