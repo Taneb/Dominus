@@ -129,7 +129,6 @@ class Player(base_player.BasePlayer):
 
         """
 
-
         rot_ship = rotate_ship(randint(0, 3), shape, base)
 
         successful = []
@@ -172,8 +171,6 @@ class Player(base_player.BasePlayer):
             shape_C,
             shape_D
         ]
-
-
 
         self._initBoards()
 
@@ -226,7 +223,7 @@ class Player(base_player.BasePlayer):
         elif n == 8:
             res = [[shape_D,shape_A],[shape_D,shape_H]]
         elif n == 9:
-            res = [[shape_D,shape_C,shape_B],[shape_C,shape_A],[shape_C,shape_H]]
+            res = [[shape_C,shape_A],[shape_D,shape_C,shape_B],[shape_C,shape_H]]
         elif n == 10:
             res = [[shape_B,shape_A],[shape_B,shape_H]]
         elif n == 11:
@@ -238,7 +235,8 @@ class Player(base_player.BasePlayer):
         elif n == 14:
             res = [[shape_D,shape_A,shape_H]]
         elif n == 15:
-            res = [[shape_D,shape_C,shape_B,shape_A],[shape_D,shape_C,shape_B,shape_H],[shape_C,shape_A,shape_H]]
+            res = [[shape_C,shape_A,shape_H],[shape_D,shape_C,shape_B,shape_A],
+                   [shape_D,shape_C,shape_B,shape_H]]
         elif n == 16:
             res = [[shape_B,shape_A,shape_H]]
         elif n == 17:
