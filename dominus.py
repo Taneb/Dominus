@@ -250,8 +250,6 @@ class Player(base_player.BasePlayer):
         else:
             raise ValueError
 
-
-
         res = filter(lambda shapes: all([shape in self.ships for shape in shapes]), res)
 
         if len(res) == 1:
@@ -393,8 +391,8 @@ class Player(base_player.BasePlayer):
                             for cx, cy in shape:
                                 if not is_valid_cell((cx, cy)):
                                     break
-                                if (self._opponenBoard[cx][cy] != const.EMPTY and
-                                        (cx, cy) not in to_cover):
+                                if (self._opponenBoard[cx][cy] != const.EMPTY 
+                                    and (cx, cy) not in to_cover):
                                     break
                                 if (cx, cy) in covered:
                                     break
@@ -407,6 +405,14 @@ class Player(base_player.BasePlayer):
                                     return res
 
         return helper_func(hit_region, frozenset(), self.ships[:])
+
+    def cover_multiple_ships_retroactive(self):
+        """If we have optimized against opponents with spaced-apart ships, we
+        may end up in a situation where they didn't cover with multiple ships
+        after all. In this situation, we will need to go back and re-analyze
+        what we have already found, to make sure that ships we have moved on
+        from aren't actually collections of ships"""
+        
 
     def chooseMove(self):
         """Decide what move to make based on current state of opponent's
