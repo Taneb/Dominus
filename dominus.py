@@ -1,515 +1,443 @@
-"""Dominus Blottleships AI"""
+import collections
+import copy
+import itertools
+import random
+
 import const
 import base_player
-from random import randint
-
-shape_D = frozenset([(0,0),(0,1)])
-shape_C = frozenset([(0,0),(0,1),(0,2)])
-shape_B = frozenset([(0,0),(0,1),(0,2),(0,3)])
-shape_A = frozenset([(0,0),(1,0),(2,0),(1,1),(1,2),(1,3)])
-shape_H = frozenset([(0,0),(2,0),(0,1),(1,1),(2,1),(1,2)])
-
-def getPlayer():
-    """ MUST NOT be changed, used to get a instance of the class."""
-    return Player()
-
-
-def get_rand_cell():
-    """Get a random piece on the board."""
-
-    row = randint(0, 11)
-    # Board is a weird L shape
-    col = randint(0, 5 if row < 6 else 11)
-    # Return move in row (letter) + col (number) grid reference
-    # e.g. A3 is represented as 0,2
-    return (row, col)
-
-
-def is_valid_cell(cell):
-    """Check that a generated cell is valid on the board.
-
-    Keyword arguments:
-    cell -- piece on the board to check
-
-    """
-    assert type(cell) == tuple
-    if cell[0] < 0 or cell[1] < 0:
-        return False
-    if cell[0] > 11 or cell[1] > 11:
-        return False
-    if cell[0] < 6 and cell[1] > 5:
-        return False
-
-    return True
-
-
-def get_rotation_factor(rotation, cell):
-    """Rotate a cell (around (0, 0)).
-
-    Keyword arguments:
-    rotation -- arbitrary rotation factor
-    cell -- cell from the board to rotate
-
-    """
-    if rotation == 0:
-        return cell
-    if rotation == 1:
-        return (-cell[1], cell[0])
-    if rotation == 2:
-        return (-cell[0], -cell[1])
-    if rotation == 3:
-        return (cell[1], -cell[0])
-    raise IndexError  # It's sort of an index error
-
-
-def rotate_ship(rotation, ship, base=(0, 0)):
-    """Rotate a ship.
-
-    Keyword arguments:
-    rotation -- arbitrary rotation factor
-    ship -- ship to rotate
-    base -- (default: (0, 0)
-
-    """
-    rot_ship = []
-    for cx, cy in ship:
-        rx, ry = get_rotation_factor(rotation, (cx, cy))
-        rot_ship.append((base[0] + rx, base[1] + ry))
-
-    return frozenset(rot_ship)
-
-
-def circle_cell(cell):
-    """Get a list of cell that are adjacent to another piece.
-
-    Keyword arguments:
-    cell -- cell from the board
-
-    """
-    rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-    return [(cell[0] + offset[0], cell[1] + offset[1]) for offset in rotate]
-
-def without(sequence, value):
-    """
-    utility function to return a sequence with the first occurence of the given
-    value removed.
-    Similar to list.remove but copies the list and returns the result.
-
-    sequence -- the sequence to remove from
-    value -- the value to remove
-
-    """
-    s2 = sequence[:]
-    s2.remove(value)
-    return s2
 
 class Player(base_player.BasePlayer):
-    """Dominus Blottleships AI implementation."""
-
     def __init__(self):
         base_player.BasePlayer.__init__(self)
         self._playerName = "Dominus"
         self._playerYear = "1"
-        self._version = "Gamma"
-        self._playerDescription = ("\"Dominus\" is Latin for Master."
-                                   "Good luck.\nBy Charles Pigott and"
-                                   "Nathan van Doorn")
+        self._version = "Epsilon"
+        self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
-        self._space_apart = True # whether we should space ships apart or not
-        self._moves = []  # Previous moves
-        self._hit_delta = 0 # How far ahead of the opponent we are in this game
-        self.ships = []
+        self._moves = [] # Our previous moves
+        self.allshapes = {
+            const.CARRIER:    [(0, 0), (1, 0), (2, 0), (1, 1), (1, 2), (1, 3)],
+            const.HOVERCRAFT: [(0, 0), (2, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
+            const.BATTLESHIP: [(0, 0), (0, 1), (0, 2), (0, 3)],
+            const.CRUISER:    [(0, 0), (0, 1), (0, 2)],
+            const.DESTROYER:  [(0, 0), (0, 1)]
+        }
+        self.shapes = {}
+        self.flags = self.enum("FINDA", "FINDB", "KILLA", "KILLB", "PANIC")
+        self.hit_regions = []
+        self.flag = self.flags.FINDA
 
-    def make_ship(self, base, shape):
-        """Place a ship on the board.
+    ###### Static Methods ######
+
+    @staticmethod
+    def enum(*sequential, **named):
+        enums = dict(zip(sequential, range(len(sequential))), **named)
+        return type('Enum', (), enums)
+
+    @staticmethod
+    def allCells():
+        """
+        Generator for all possible cells in a board.
+        """
+        for x in range(12):
+            for y in range(6 if x < 6 else 12):
+                assert Player.isValidCell((x, y))
+                yield (x, y)
+
+    @staticmethod
+    def getRandPiece():
+        """
+        Get a random piece on the board.
+        """
+        row = random.randint(0, 11)
+        # Board is a weird L shape
+        col = random.randint(0, 5 if row < 6 else 11)
+        # Return move in row (letter) + col (number) grid reference
+        # e.g. A3 is represented as 0,2
+        return (row, col)
+
+    @staticmethod
+    def isValidCell(cell):
+        """
+        Check that a generated cell is valid on the board.
+        """
+        assert(type(cell) == tuple)
+        if cell[0] < 0  or cell[1] < 0:  return False
+        if cell[0] > 11 or cell[1] > 11: return False
+        if cell[0] < 6 and cell[1] > 5:  return False
+        return True
+
+    @staticmethod
+    def getRotationFactor(rotation, cell):
+        if rotation == 0:
+            return cell
+        if rotation == 1:
+            return (-cell[1], cell[0])
+        if rotation == 2:
+            return (-cell[0], -cell[1])
+        if rotation == 3:
+            return (cell[1], -cell[0])
+        raise IndexError # It's sort of an index error
+
+    @staticmethod
+    def isValidShip(ship):
+        for piece in ship:
+            if not Player.isValidCell(piece):
+                return False
+        return True
+
+    @staticmethod
+    def rotateShip(rotation, ship):
+        """
+        Rotate a ship.
 
         Keyword arguments:
-        base -- base piece to try placing the ship on
-        shape -- ship to try placing
-
+        rotation -- arbitrary rotation factor
+        ship -- ship shape to rotate
         """
+        rot_ship = []
+        for cell in ship:
+            rot_ship.append(Player.getRotationFactor(rotation, cell))
+        return rot_ship
 
-        rot_ship = rotate_ship(randint(0, 3), shape, base)
+    @staticmethod
+    def rotateAllShips(ships):
+        """
+        Generator for all possible rotations of a ship.
+        """
+        for ship in ships:
+            for rot in range(4):
+                yield Player.rotateShip(rot, ship)
 
+    @staticmethod
+    def translateShip(ship, base):
+        trans_ship = []
+        for cx, cy in ship:
+            # Add tuples together
+            trans_ship.append((base[0] + cx, base[1] + cy))
+        return trans_ship
+
+    @staticmethod
+    def circleCell(piece):
+        """
+        Rotate around a particular cell on the board.
+        """
+        assert(type(piece) == tuple)
+        rotate = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        return [(piece[0] + offset[0], piece[1] + offset[1]) for offset in rotate]
+
+    @staticmethod
+    def getShipType(ship):
+        if len(ship) == 2:
+            return const.DESTROYER
+        elif len(ship) == 3:
+            return const.CRUISER
+        elif len(ship) == 4:
+            return const.BATTLESHIP
+        elif abs(ship[0][0] - ship[1][0] + ship[0][1] - ship[1][1]) == 1:
+            return const.CARRIER
+        else:
+            return const.HOVERCRAFT
+
+    ###### Class Methods ######
+
+    def makeShip(self, base, shape, count):
+        rotation = random.randint(0, 3)
         successful = []
-        for cell in rot_ship:
+        for coord in shape:
+            rotFact = self.getRotationFactor(rotation, coord)
+            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
             success = True
-            success = success and is_valid_cell(cell)
-            success = success and self._playerBoard[cell[0]][cell[1]] == const.EMPTY
-            if not success:
-                return False
+            success = success and self.isValidCell(actual)
+            success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
+            if not success: return False
 
-            if self._space_apart:
-                # Try not to connect ships together
-                count = 0
-                for adj_cell in circle_cell(cell):
-                    success = success and (not is_valid_cell(adj_cell) or
-                                           adj_cell in successful or
-                                           self._playerBoard[adj_cell[0]][adj_cell[1]] == const.EMPTY)
-                    count += 1
+            # Try not to connect ships together
+            for cell in self.circleCell(actual):
+                success = success and (not self.isValidCell(cell) or
+                                       cell in successful or
+                                       self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
 
-                # Don't bother trying to separate ships if it's too hard
-                if not success and count < 200:
-                    return False
+            # Don't bother trying to separate ships if it's too hard
+            if not success and count < 200: return False
 
-            successful.append(cell)
-        for cx, cy in successful:
-            self._playerBoard[cx][cy] = const.OCCUPIED
+            successful.append(actual)
+        for coord in successful:
+            self._playerBoard[coord[0]][coord[1]] = const.OCCUPIED
         return True
 
     def deployFleet(self):
-        """Place ship fleet on the board. """
-        if self._hit_delta >= 3:
-            self._space_apart = not self._space_apart
-
-        # Reset some variables each game
-        self._moves = []
-        self.ships = [
-            shape_H,
-            shape_A,
-            shape_B,
-            shape_C,
-            shape_D
-        ]
-
-        self._initBoards()
-
-        for ship in self.ships:
+        """
+        Overridden function.
+        Places our fleet of ships on _playerBoard.
+        """
+        for ship in self.shapes.itervalues():
+            count = 0
             while True:
-                sp = get_rand_cell()
-                if self.make_ship(sp, ship):
+                sp = self.getRandPiece()
+                if self.makeShip(sp, ship, count):
                     break
+                count += 1
 
         return self._playerBoard
 
-    def count_possibilities(self, cell, shape):
-        """Count the number of possible ways the given shape could overlap
-        with the given cell.
-
-        cell -- piece on the board to check
-        shape -- ship to try placing
+    def newRound(self):
         """
-        count = 0
-        for rotation in range(4):
-            for px, py in shape:
-                shape2 = rotate_ship(rotation, {(x - px, y - py) for x, y in shape}, cell)
+        Overridden function.
+        Things to do on new round.
+        """
+        self._initBoards()
+        self._moves = []
+        self.flag = self.flags.FINDA
+        self.hit_regions = []
+        self.hit_regions.append(set())
 
-                for x, y in shape2:
-                    if not is_valid_cell((x, y)):
-                        break
-                    if self._opponenBoard[x][y] != const.EMPTY:
+        self.shapes = copy.deepcopy(self.allshapes)
+
+    def newPlayer(self, name=None):
+        """
+        Overridden function.
+        Things to do on new match against a new player.
+        """
+        pass
+
+    def calcPossibilities(self):
+        points = collections.defaultdict(int)
+        for (b, s) in itertools.product(self.allCells(),
+                                        self.rotateAllShips(self.shapes.itervalues())):
+            ship = self.translateShip(s, b)
+            if not self.isValidShip(ship):
+                continue
+            for cx, cy in ship:
+                if self._opponenBoard[cx][cy] != const.EMPTY:
+                    break
+            else:
+                for c in ship:
+                    points[c] += 1
+        return points
+
+    def calcHitProbabilities(self, hit_region):
+        returning_shape = None
+        found_shape = True
+        points = collections.defaultdict(int)
+        # "Arbitrary" cell that has been a successful hit
+        bx, by = next(iter(hit_region))
+        for s in self.rotateAllShips(self.shapes.itervalues()):
+            for ox, oy in s:
+                ship = self.translateShip(s, (bx - ox, by - oy))
+                if not self.isValidShip(ship):
+                    continue
+                for cx, cy in ship:
+                    if self._opponenBoard[cx][cy] not in [const.EMPTY, const.HIT]:
                         break
                 else:
-                    count += 1
-        return count
+                    if hit_region <= set(ship):
+                        if found_shape:
+                            returning_shape = self.getShipType(ship)
+                        for c in ship:
+                            if self._opponenBoard[c[0]][c[1]] == const.EMPTY:
+                                returning_shape = None
+                                found_shape = False
+                                points[c] += 1
 
-    def outer_analyse(self, hit_region):
-        n = len(hit_region)
-        res = None
-        if n == 0:
-            res = [[]]
-        elif n == 2:
-            res = [[shape_D]]
-        elif n == 3:
-            res = [[shape_C]]
-        elif n == 5:
-            res = [[shape_D,shape_C]]
-        elif n == 4:
-            res = [[shape_B]]
-        elif n == 6:
-            res = [[shape_D,shape_B],[shape_A],[shape_H]]
-        elif n == 7:
-            res = [[shape_C,shape_B]]
-        elif n == 8:
-            res = [[shape_D,shape_A],[shape_D,shape_H]]
-        elif n == 9:
-            res = [[shape_C,shape_A],[shape_D,shape_C,shape_B],[shape_C,shape_H]]
-        elif n == 10:
-            res = [[shape_B,shape_A],[shape_B,shape_H]]
-        elif n == 11:
-            res = [[shape_D,shape_C,shape_A],[shape_D,shape_C,shape_H]]
-        elif n == 12:
-            res = [[shape_D,shape_B,shape_A],[shape_D,shape_B,shape_H],[shape_A,shape_H]]
-        elif n == 13:
-            res = [[shape_C,shape_B,shape_A],[shape_C,shape_B,shape_H]]
-        elif n == 14:
-            res = [[shape_D,shape_A,shape_H]]
-        elif n == 15:
-            res = [[shape_C,shape_A,shape_H],[shape_D,shape_C,shape_B,shape_A],
-                   [shape_D,shape_C,shape_B,shape_H]]
-        elif n == 16:
-            res = [[shape_B,shape_A,shape_H]]
-        elif n == 17:
-            res = [[shape_D,shape_C,shape_A,shape_H]]
-        elif n == 18:
-            res = [[shape_D,shape_B,shape_A,shape_H]]
-        elif n == 19:
-            res = [[shape_C,shape_B,shape_A,shape_H]]
-        elif n == 21:
-            res = [[shape_D,shape_C,shape_B,shape_A,shape_H]]
-        else:
-            raise ValueError
+        return returning_shape, points
 
-        res = filter(lambda shapes: all([shape in self.ships for shape in shapes]), res)
+    def panicInit(self):
+        self.flag = self.flags.PANIC
+        # Reinit the list of shapes
+        self.shapes = copy.deepcopy(self.allshapes)
+        self.hit_regions = []
+        for cx, cy in self.allCells():
+            if self._opponenBoard[cx][cy] != const.HIT:
+                continue
+            hit_region_match = None
+            added = False
+            for region in self.hit_regions:
+                if (cx - 1, cy) in region:
+                    added = True
+                    hit_region_match = region
+                    region.add((cx, cy))
+                    break
+            for region in self.hit_regions:
+                if (cx, cy - 1) in region:
+                    added = True
+                    if hit_region_match and hit_region_match is not region:
+                       hit_region_match |= region
+                       self.hit_regions.remove(region)
+                    else:
+                        region.add((cx, cy))
+                    break
+            if not added:
+                self.hit_regions.append(set(((cx, cy),)))
+        self.hit_regions.sort(cmp=lambda x, y: cmp(len(x), len(y)))
 
-        if len(res) == 1:
-            return res[0]
-
-        elif len(res) == 0:
-            raise ValueError
-
-        else:
-            return self.new_analyse_hit_region(res, hit_region)
-
-    def new_analyse_hit_region(self, possibilities, hit_region):
-
-        for possibility in possibilities:
-            try:
-                self.analyse_hit_region(hit_region, possibility[:], [])[0]
-                return possibility
-            except IndexError:
-                pass
-            except ValueError:
-                pass
-
-    def analyse_hit_region(self, rem_cells, ships_to_test, ships_to_del):
-        """Gets a list of ships that precisely cover a set of points.
-
-        Keyword arguments:
-        rem_cells -- remaining cells to test
-        ships_to_test -- ships still to test
-        ships_to_del -- ships already used in the solution
-
+    def panicAttack(self, already_covered, need_to_cover, rem_ships):
         """
-        if not rem_cells:
-            # We've got there :)
-            return [ships_to_del]
-
-        if ships_to_test:
-            top_ship = ships_to_test.pop()
-
-
-            res = []
-
-            for direction in range(4):
-                rot_top_ship = rotate_ship(direction, top_ship)
-
-                for fx, fy in rem_cells:
-                    for ox, oy in rot_top_ship:
-                        will_be_taken = {(fx - ox + px, fy - oy + py)
-                                         for px, py in rot_top_ship}
-
-                        if will_be_taken <= rem_cells:
-                            next_to_del_ships = ships_to_del[:]
-                            next_to_del_ships.append(top_ship)
-                            res.append((rem_cells - will_be_taken,
-                                        ships_to_test[:],
-                                        next_to_del_ships[:]))
-            return [fin for state in res
-                    for fin in self.analyse_hit_region(*state)]
-
-        else:
-            return []
-
-    def cover_single_ship(self, hit_region, border):
-        """Chooses the most likely cell in the border to be a hit, assuming
-        that there is only one ship, where no others are adjacent to it.
-
-        Keyword arguments:
-        hit_region -- set of known hits
-        border -- set of points adjacent to these hits
-
+        OH GOD WHY?!
         """
-        border_scores = dict.fromkeys(border, 0)
+        if not need_to_cover:
+            return already_covered, rem_ships
 
-        for cell in hit_region:
-            for ship_pre_rot in self.ships:
-                for px, py in ship_pre_rot:
-                    for orientation in range(4):
-                        shape = rotate_ship(orientation,
-                                            {(x - px, y - py) for x, y in ship_pre_rot},
-                                            cell)
+        bx, by = next(iter(need_to_cover))
+        for s in self.rotateAllShips(rem_ships.itervalues()):
+            for ox, oy in s:
+                ship = self.translateShip(s, (bx - ox, by - oy))
+                if not self.isValidShip(ship):
+                    continue
+                for cx, cy in ship:
+                    # !!!
+                    if ((cx, cy) not in need_to_cover and
+                        ((cx, cy) in already_covered or
+                         (self._opponenBoard[cx][cy] not in [const.EMPTY, const.HIT]))):
+                        break
+                else:
+                    cover_cp = set(need_to_cover)
+                    for cell in ship:
+                        for adj_cell, region in itertools.product(self.circleCell(cell),
+                                                                  self.hit_regions[1:]):
+                            if adj_cell in region:
+                                cover_cp |= region
+                                break
 
-                        if hit_region <= shape:
+                    new_rem_ships = copy.deepcopy(rem_ships)
+                    del new_rem_ships[self.getShipType(ship)]
+                    ret_val = self.panicAttack(already_covered | set(ship),
+                                               cover_cp - set(ship),
+                                               new_rem_ships)
+                    if ret_val is not None:
+                        return ret_val
 
-                            for cx, cy in shape:
-                                if not is_valid_cell((cx, cy)):
-                                    break
-                                if (self._opponenBoard[cx][cy] != const.EMPTY and
-                                        (cx, cy) not in hit_region):
-                                    break
-                            else:
-                                for coord in shape & border:
-                                    border_scores[coord] += 1
-
-        try:
-            best = max(border_scores.items(), key=lambda kv: kv[1])
-            if best[1]:
-                return best[0]
-
-        except ValueError:
-            pass
-
-    def cover_multiple_ships(self, hit_region, border):
-        """Chooses a possible cell in the border to be a hit, assuming
-        there are ships adjacent to each other.
-
-        Keyword arguments:
-        hit_region -- set of known hits
-        border -- set of points adjacent to these hits
-
-        """
-        def helper_func(to_cover, covered, remaining):
-            """Recursive helper function to calculate the best point on the
-            board to hit.
-
-            Keyword arguments:
-            to_cover -- set of coords to cover
-            covered -- set of coords already covered
-            remaining -- remaining ships to check
-
-            """
-            if not to_cover:
-                # FLAWLESS VICTORY!
-                # returns one of the possibilities
-                res = list(covered & border)
-                if res:
-                    return res[0]
-
-            else:
-                for ship_pre_offset in self.ships:
-                    if ship_pre_offset not in remaining:
-                        continue
-                    for pivx, pivy in ship_pre_offset:
-                        for orientation in range(4):
-                            ship_pre_rot = [(x - pivx, y - pivy)
-                                            for x, y in ship_pre_offset]
-                            shape = rotate_ship(orientation, ship_pre_rot,
-                                                next(iter(to_cover)))
-
-                            # Make sure it fits
-                            for cx, cy in shape:
-                                if not is_valid_cell((cx, cy)):
-                                    break
-                                if (self._opponenBoard[cx][cy] != const.EMPTY 
-                                    and (cx, cy) not in to_cover):
-                                    break
-                                if (cx, cy) in covered:
-                                    break
-                            else:
-                                res = helper_func(to_cover - shape,
-                                                  covered | shape,
-                                                  without(remaining,
-                                                          ship_pre_offset))
-                                if res is not None:
-                                    return res
-
-        return helper_func(hit_region, frozenset(), self.ships[:])
-
-    def cover_multiple_ships_retroactive(self):
-        """If we have optimized against opponents with spaced-apart ships, we
-        may end up in a situation where they didn't cover with multiple ships
-        after all. In this situation, we will need to go back and re-analyze
-        what we have already found, to make sure that ships we have moved on
-        from aren't actually collections of ships"""
-        
 
     def chooseMove(self):
-        """Decide what move to make based on current state of opponent's
-        board and return it.
         """
-        dec_mv = (-1, -1)
+        Overridden function.
+        Decide what move to make based on current state of
+        opponent's board and return it
+        """
+        decMv = (-1, -1)
 
-        hit_region = {x[0] for x in reversed(self._moves) if x[1] == const.HIT}
+        if self.flag == self.flags.KILLA:
+            print self.hit_regions
+            assert self.hit_regions and len(self.hit_regions) == 1 and self.hit_regions[0]
+            returning_shape, points = self.calcHitProbabilities(self.hit_regions[0])
+            if points:
+                max_score = max(points.itervalues())
+                poss_moves = [x for x, score in points.iteritems() if score == max_score]
+                decMv = random.choice(poss_moves)
+            elif returning_shape:
+                print "found shape:", str(returning_shape)
+                del self.shapes[returning_shape]
+                self.flag = self.flags.FINDA
+                self.hit_regions[0] = set()
+            else:
+                self.panicInit()
 
-        if hit_region:
-            # Most likely situation is that these all form a single ship.
-            # However, there is an unavoidable possibility that they do not.
-            # We should first check to see whether it is possible to cover all
-            # these cells with a single ship. If we can, we should base
-            # solutions on that. If we cannot, or we can't move based on that,
-            # (because, say, the hits form the exact shape of a larger ship)
-            # we should do something else.
+        if self.flag == self.flags.FINDA or self.flag == self.flags.FINDB:
+            points = self.calcPossibilities()
+            if points:
+                max_score = max(points.itervalues())
+                poss_moves = [x for x, score in points.iteritems() if score == max_score]
+                decMv = random.choice(poss_moves)
+            else:
+                self.panicInit()
 
-            # Check previous moves for unchecked cells
-            border = set()
+        if self.flag == self.flags.PANIC:
+            assert self.hit_regions and self.hit_regions[0]
+            # :(
+            covered, rem_ships = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+            for cx, cy in covered:
+                if self._opponenBoard[cx][cy] != const.EMPTY:
+                    continue
 
-            for cell_x, cell_y in [c for x in hit_region for c in circle_cell(x)]:
-                if (is_valid_cell((cell_x, cell_y)) and
-                        self._opponenBoard[cell_x][cell_y] == const.EMPTY):
-                    border.add((cell_x, cell_y))
-
-            single_ship_case = self.cover_single_ship(hit_region, border)
-            if single_ship_case is not None:
-                return single_ship_case
-
-            border_scores = dict.fromkeys(border, 0)
-
-            # otherwise it's time to check the "More than one ship case"
-
-            multi_ship_case = self.cover_multiple_ships(hit_region, border)
-            if multi_ship_case is not None:
-                return multi_ship_case
-
-            # Otherwise stop looking for those shapes
-            for to_del in self.outer_analyse(hit_region):
-
-                self.ships.remove(to_del)
-
-            # Reset _moves because we've checked all the hits we care about.
-            self._moves = []
-
-        # Failing that, it's probability distribution time.
-        best_prob = 0
-        for x in range(12):
-            for y in range(len(self._opponenBoard[x])):
-                this_prob = 0
-                for shape in self.ships:
-                    this_prob += self.count_possibilities((x, y), shape)
-                if this_prob > best_prob:
-                    best_prob = this_prob
-                    dec_mv = (x, y)
+                for adj_cell in self.circleCell((cx, cy)):
+                    if adj_cell in self.hit_regions[0]:
+                        decMv = (cx, cy)
+                        break
+                if self.isValidCell(decMv):
+                    break
+            else:
+                for region in self.hit_regions:
+                    region -= covered
+                while self.hit_regions and not self.hit_regions[0]:
+                    self.hit_regions = self.hit_regions[1:]
+                self.shapes = rem_ships
+                if not self.hit_regions:
+                    self.flag = self.flags.FINDB
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
-        while (not is_valid_cell(dec_mv) or
-                self._opponenBoard[dec_mv[0]][dec_mv[1]] != const.EMPTY):
-            dec_mv = get_rand_cell()
-            if count < 50 and (dec_mv[0] + dec_mv[1]) % 2 != 0:
-                dec_mv = (-1, -1)
+        while (not self.isValidCell(decMv) or
+                self._opponenBoard[decMv[0]][decMv[1]] != const.EMPTY):
+            decMv = self.getRandPiece()
+            if count < 50 and (decMv[0] + decMv[1]) % 2 != 0:
+                decMv = (-1, -1)
+            count += 1
 
-        assert(is_valid_cell(dec_mv) and
-               self._opponenBoard[dec_mv[0]][dec_mv[1]] == const.EMPTY)
-        return dec_mv
+        assert(self.isValidCell(decMv) and
+               self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY)
+        return decMv
 
     def setOutcome(self, entry, row, col):
-        """Update the opponent board with the outcome of our previous move.
-
-        Keyword arguments:
-        entry -- the outcome of your shot onto your opponent, expected value
-                 is const.HIT for hit and const.MISSED for missed
-        row -- the board row number (e.g. row A is 0)
-        col -- the board column (e.g. col 2 is represented by value 3)
-
         """
-        outcome = const.MISSED
-        if entry == const.HIT:
-            self._hit_delta -= 1
-            outcome = const.HIT
+        Overridden function.
+        entry: the outcome of your shot onto your opponent,
+               expected value is const.HIT for hit and const.MISSED for missed.
+        row: (int) the board row number (e.g. row A is 0)
+        col: (int) the board column (e.g. col 2 is represented by  value 3) so A3 case is (0,2)
+        """
 
-        self._opponenBoard[row][col] = outcome
-        self._moves.append(((row, col), outcome))
+        if entry == const.HIT:
+            Outcome = const.HIT
+            if self.flag == self.flags.PANIC:
+                hit_region_matched = []
+                for region in self.hit_regions:
+                    for adj_cell in self.circleCell((row, col)):
+                        if adj_cell in region:
+                            hit_region_matched.append(region)
+                if hit_region_matched:
+                    blessed_region = hit_region_matched[0]
+                    for other_region in hit_region_matched[1:]:
+                        if other_region is not blessed_region:
+                            blessed_region |= other_region
+                            try:
+                                self.hit_regions.remove(other_region)
+                            except ValueError:
+                                pass
+                    blessed_region.add((row, col))
+                else:
+                    self.hit_regions.append(set(((row, col),)))
+
+            else:
+                self.hit_regions[0].add((row, col))
+            if self.flag in [self.flags.FINDA, self.flags.KILLA]:
+                self.flag = self.flags.KILLA
+            else:
+                self.flag = self.flags.KILLB
+        elif entry == const.MISSED:
+            Outcome = const.MISSED
+        else:
+            raise Exception("Invalid input!")
+        self._opponenBoard[row][col] = Outcome
+        self._moves.append(((row, col), Outcome))
 
     def getOpponentMove(self, row, col):
-        """Keep track of where the opponent is hitting."""
+        """
+        Overridden function.
+        You might like to keep track of where your opponent
+        has missed, but here we just acknowledge it. Note case A3 is
+        represented as row = 0, col = 2.
+        """
         if ((self._playerBoard[row][col] == const.OCCUPIED)
-                or (self._playerBoard[row][col] == const.HIT)):
-            # They may hit the same square twice so check for occupied or hit
+            or (self._playerBoard[row][col] == const.HIT)):
+            # They may (stupidly) hit the same square twice so we check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
-            self._hit_delta += 1
         else:
-            # Acknowledge that the opponent missed
-            # Todo? Keep track of misses
+            # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
         return result
+
+
+def getPlayer():
+    """ MUST NOT be changed, used to get a instance of your class."""
+    return Player()

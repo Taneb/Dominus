@@ -55,7 +55,7 @@ class Player(base_player.BasePlayer):
         successful = []
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
-            actual = (coord[0] + base[0], coord[1] + base[1])
+            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY

@@ -55,7 +55,7 @@ class Player(base_player.BasePlayer):
         successful = []
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
-            actual = (coord[0] + base[0], coord[1] + base[1])
+            actual = (rotFact[0] + base[0], rotFact[1] + base[1])
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
@@ -123,12 +123,12 @@ class Player(base_player.BasePlayer):
         for x in reversed(self._moves):
             if x[1] != const.HIT:
                 continue
-            
+
             for decMv in self.circleCell(x[0]):
                 if (self.isValidCell(decMv) and
                         self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY):
                     return decMv[0], decMv[1]
-                    
+
         # failing that, it's probability distribution time.
         bestProb = 0
         for x in range(12):
@@ -204,7 +204,7 @@ class Player(base_player.BasePlayer):
                 if valid:
                     count += 1
         return count
-                    
+
 
 def getPlayer():
     """ MUST NOT be changed, used to get a instance of your class."""
