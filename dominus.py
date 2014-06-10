@@ -317,7 +317,6 @@ class Player(base_player.BasePlayer):
         decMv = (-1, -1)
 
         if self.flag == self.flags.KILLA:
-            print self.hit_regions
             assert self.hit_regions and len(self.hit_regions) == 1 and self.hit_regions[0]
             returning_shape, points = self.calcHitProbabilities(self.hit_regions[0])
             if points:
@@ -325,7 +324,6 @@ class Player(base_player.BasePlayer):
                 poss_moves = [x for x, score in points.iteritems() if score == max_score]
                 decMv = random.choice(poss_moves)
             elif returning_shape:
-                print "found shape:", str(returning_shape)
                 del self.shapes[returning_shape]
                 self.flag = self.flags.FINDA
                 self.hit_regions[0] = set()
