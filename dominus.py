@@ -2,9 +2,6 @@ import collections
 import copy
 import itertools
 import random
-import turtle
-from Tkinter import *
-import datetime
 
 import const
 import base_player
