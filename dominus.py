@@ -278,12 +278,17 @@ class Player(base_player.BasePlayer):
                 self.hit_regions.append(set(((cx, cy),)))
         self.hit_regions.sort(cmp=lambda x, y: cmp(len(x), len(y)))
 
-    def panicAttack(self, already_covered, need_to_cover, rem_ships):
+    def panicAttack(self, already_covered, need_to_cover, rem_ships, saved_result=None):
         """
         OH GOD WHY?!
         """
+
         if not need_to_cover:
-            return already_covered, rem_ships
+            for cx, cy in already_covered:
+                if self._opponenBoard[cx][cy] != const.HIT:
+                    return already_covered, rem_ships, True
+            if not saved_result:
+                saved_result = already_covered, rem_ships, False
 
         bx, by = next(iter(need_to_cover))
         for s in self.rotateAllShips(rem_ships.itervalues()):
@@ -310,9 +315,13 @@ class Player(base_player.BasePlayer):
                     del new_rem_ships[self.getShipType(ship)]
                     ret_val = self.panicAttack(already_covered | set(ship),
                                                cover_cp - set(ship),
-                                               new_rem_ships)
+                                               new_rem_ships, saved_result)
                     if ret_val is not None:
-                        return ret_val
+                        if ret_val[2]:
+                            return ret_val
+                        if not saved_result:
+                            saved_result = ret_val
+        return saved_result
 
 
     def chooseMove(self):
@@ -346,28 +355,54 @@ class Player(base_player.BasePlayer):
             else:
                 self.panicInit()
 
-        if self.flag == self.flags.PANIC:
-            assert self.hit_regions and self.hit_regions[0]
-            # :(
-            covered, rem_ships = self.panicAttack(set(), self.hit_regions[0], self.shapes)
-            for cx, cy in covered:
-                if self._opponenBoard[cx][cy] != const.EMPTY:
-                    continue
+        try:
 
-                for adj_cell in self.circleCell((cx, cy)):
-                    if adj_cell in self.hit_regions[0]:
-                        decMv = (cx, cy)
+            if self.flag == self.flags.PANIC:
+                assert self.hit_regions and self.hit_regions[0]
+                # :(
+                covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+                for cx, cy in covered:
+                    if self._opponenBoard[cx][cy] != const.EMPTY:
+                        continue
+
+                    for adj_cell in self.circleCell((cx, cy)):
+                        if adj_cell in self.hit_regions[0]:
+                            decMv = (cx, cy)
+                            break
+                    if self.isValidCell(decMv):
                         break
-                if self.isValidCell(decMv):
-                    break
-            else:
-                for region in self.hit_regions:
-                    region -= covered
-                while self.hit_regions and not self.hit_regions[0]:
-                    self.hit_regions = self.hit_regions[1:]
-                self.shapes = rem_ships
-                if not self.hit_regions:
+                else:
+                    for region in self.hit_regions:
+                        region -= covered
+                    while self.hit_regions and not self.hit_regions[0]:
+                        self.hit_regions = self.hit_regions[1:]
+                    self.shapes = rem_ships
+                    if not self.hit_regions:
+                        self.flag = self.flags.FINDB
+
+            if self.flag == self.flags.KILLB:
+                assert self.hit_regions and self.hit_regions[0]
+
+                covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+                for cx, cy in covered:
+                    if self._opponenBoard[cx][cy] != const.EMPTY:
+                        continue
+
+                    for adj_cell in self.circleCell((cx, cy)):
+                        if adj_cell in self.hit_regions[0]:
+                            decMv = (cx, cy)
+                            break
+                    if self.isValidCell(decMv):
+                        break
+                else:
                     self.flag = self.flags.FINDB
+                    self.hit_regions = []
+        except:
+            print "\jlflkjdflkj"
+            screen = turtle.getscreen()
+            filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
+            screen.getcanvas().postscript(file=filename)
+            raw_input()
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
@@ -410,10 +445,13 @@ class Player(base_player.BasePlayer):
                                 pass
                     blessed_region.add((row, col))
                 else:
-                    self.hit_regions.append(set(((row, col),)))
+                    self.hit_regions.append({(row, col)})
 
             else:
-                self.hit_regions[0].add((row, col))
+                try:
+                    self.hit_regions[0].add((row, col))
+                except IndexError:
+                    self.hit_regions.append({(row, col)})
             if self.flag in [self.flags.FINDA, self.flags.KILLA]:
                 self.flag = self.flags.KILLA
             else:
