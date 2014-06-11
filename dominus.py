@@ -18,17 +18,21 @@ class Player(base_player.BasePlayer):
         self._playerDescription = "\"Dominus\" is Latin for Master. Good luck.\nBy Charles Pigott and Nathan van Doorn"
 
         self._moves = [] # Our previous moves
-        self.allshapes = {
+        self.allshapes = collections.OrderedDict({
             const.CARRIER:    [(0, 0), (1, 0), (2, 0), (1, 1), (1, 2), (1, 3)],
             const.HOVERCRAFT: [(0, 0), (2, 0), (0, 1), (1, 1), (2, 1), (1, 2)],
             const.BATTLESHIP: [(0, 0), (0, 1), (0, 2), (0, 3)],
             const.CRUISER:    [(0, 0), (0, 1), (0, 2)],
             const.DESTROYER:  [(0, 0), (0, 1)]
-        }
-        self.shapes = {}
-        self.flags = self.enum("FINDA", "FINDB", "KILLA", "KILLB", "PANIC")
+        })
+        self.shapes = collections.OrderedDict({})
+        self.flags = self.enum("FINDA", "FINDB", "KILLA", "KILLB", "PANIC", "FLOOD")
         self.hit_regions = []
         self.flag = self.flags.FINDA
+
+        self.has_reversed = False
+        self.hit_delta = 0
+        self.space_apart = True
 
     ###### Static Methods ######
 
@@ -155,6 +159,8 @@ class Player(base_player.BasePlayer):
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success: return False
 
+            if not self.space_apart: return True
+
             # Try not to connect ships together
             for cell in self.circleCell(actual):
                 success = success and (not self.isValidCell(cell) or
@@ -196,6 +202,11 @@ class Player(base_player.BasePlayer):
         self.hit_regions.append(set())
 
         self.shapes = copy.deepcopy(self.allshapes)
+        self.has_reversed = False
+
+        if self.hit_delta >= 3:
+            self.space_apart = not self.space_apart
+        self.hit_delta = 0
 
     def newPlayer(self, name=None):
         """
@@ -282,7 +293,6 @@ class Player(base_player.BasePlayer):
         """
         OH GOD WHY?!
         """
-
         if not need_to_cover:
             for cx, cy in already_covered:
                 if self._opponenBoard[cx][cy] != const.HIT:
@@ -344,7 +354,18 @@ class Player(base_player.BasePlayer):
     def killB(self):
         assert self.hit_regions and self.hit_regions[0]
 
-        covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+        try:
+            covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+        except:
+            if self.has_reversed:
+                self.flag = self.flags.FLOOD
+                return (-1, -1)
+
+            self.has_reversed = not self.has_reversed
+            # Woops, try again
+            self.panicInit()
+            self.shapes = collections.OrderedDict(reversed(self.shapes.items()))
+            return (-1, -1)
         for cx, cy in covered:
             if self._opponenBoard[cx][cy] != const.EMPTY:
                 continue
@@ -373,11 +394,19 @@ class Player(base_player.BasePlayer):
         try:
             covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
         except:
-            print "woops"
-            screen = turtle.getscreen()
-            filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
-            screen.getcanvas().postscript(file=filename)
-            raw_input()
+            if self.has_reversed:
+                self.flag = self.flags.FLOOD
+                return (-1, -1)
+
+            self.has_reversed = not self.has_reversed
+            # Woops, try again
+            self.panicInit()
+            self.shapes = collections.OrderedDict(reversed(self.shapes.items()))
+            return (-1, -1)
+        #    screen = turtle.getscreen()
+         #   filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
+         #   screen.getcanvas().postscript(file=filename)
+         #   raw_input()
         for cx, cy in covered:
             if self._opponenBoard[cx][cy] != const.EMPTY:
                 continue
@@ -395,6 +424,17 @@ class Player(base_player.BasePlayer):
                 self.flag = self.flags.FINDB
 
 
+    def flood(self):
+        for cx, cy in self.allCells():
+            if self._opponenBoard[cx][cy] != const.HIT:
+                continue
+
+            for adj_x, adj_y in self.circleCell((cx, cy)):
+                if self.isValidCell((adj_x, adj_y)) and self._opponenBoard[adj_x][adj_y] == const.EMPTY:
+                    return (adj_x, adj_y)
+        return 27
+
+
     def chooseMove(self):
         """
         Overridden function.
@@ -409,10 +449,18 @@ class Player(base_player.BasePlayer):
             self.flags.FINDA: self.find,
             self.flags.FINDB: self.find,
             self.flags.PANIC: self.panic,
+            self.flags.FLOOD: self.flood,
         }
 
         while not decMv or not self.isValidCell(decMv):
             decMv = flagdict[self.flag]()
+            # Uh oh.
+            if decMv == 27:
+                decMv = (-1, -1)
+                break
+
+        if self.isValidCell(decMv) and self._opponenBoard[decMv[0]][decMv[1]] == const.EMPTY:
+            return decMv
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
@@ -437,6 +485,7 @@ class Player(base_player.BasePlayer):
         """
 
         if entry == const.HIT:
+            self.hit_delta -= 1
             Outcome = const.HIT
             if self.flag == self.flags.PANIC:
                 hit_region_matched = []
@@ -485,6 +534,7 @@ class Player(base_player.BasePlayer):
             # They may (stupidly) hit the same square twice so we check for occupied or hit
             self._playerBoard[row][col] = const.HIT
             result = const.HIT
+            self.hit_delta += 1
         else:
             # You might like to keep track of where your opponent has missed, but here we just acknowledge it
             result = const.MISSED
