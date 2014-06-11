@@ -288,7 +288,9 @@ class Player(base_player.BasePlayer):
                 if self._opponenBoard[cx][cy] != const.HIT:
                     return already_covered, rem_ships, True
             if not saved_result:
-                saved_result = already_covered, rem_ships, False
+                return already_covered, rem_ships, False
+            else:
+                return saved_result
 
         bx, by = next(iter(need_to_cover))
         for s in self.rotateAllShips(rem_ships.itervalues()):
@@ -324,6 +326,75 @@ class Player(base_player.BasePlayer):
         return saved_result
 
 
+    def killA(self):
+        assert self.hit_regions and len(self.hit_regions) == 1 and self.hit_regions[0]
+        returning_shape, points = self.calcHitProbabilities(self.hit_regions[0])
+        if points:
+            max_score = max(points.itervalues())
+            poss_moves = [x for x, score in points.iteritems() if score == max_score]
+            return random.choice(poss_moves)
+        elif returning_shape:
+            del self.shapes[returning_shape]
+            self.flag = self.flags.FINDA
+            self.hit_regions[0] = set()
+        else:
+            self.panicInit()
+
+
+    def killB(self):
+        assert self.hit_regions and self.hit_regions[0]
+
+        covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+        for cx, cy in covered:
+            if self._opponenBoard[cx][cy] != const.EMPTY:
+                continue
+
+            for adj_cell in self.circleCell((cx, cy)):
+                if adj_cell in self.hit_regions[0]:
+                    return (cx, cy)
+        else:
+            self.flag = self.flags.FINDB
+            self.hit_regions = []
+
+
+    def find(self):
+        points = self.calcPossibilities()
+        if points:
+            max_score = max(points.itervalues())
+            poss_moves = [x for x, score in points.iteritems() if score == max_score]
+            return random.choice(poss_moves)
+        else:
+            self.panicInit()
+
+
+    def panic(self):
+        assert self.hit_regions and self.hit_regions[0]
+        # :(
+        try:
+            covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+        except:
+            print "woops"
+            screen = turtle.getscreen()
+            filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
+            screen.getcanvas().postscript(file=filename)
+            raw_input()
+        for cx, cy in covered:
+            if self._opponenBoard[cx][cy] != const.EMPTY:
+                continue
+
+            for adj_cell in self.circleCell((cx, cy)):
+                if adj_cell in self.hit_regions[0]:
+                    return (cx, cy)
+        else:
+            for region in self.hit_regions:
+                region -= covered
+            while self.hit_regions and not self.hit_regions[0]:
+                self.hit_regions = self.hit_regions[1:]
+            self.shapes = rem_ships
+            if not self.hit_regions:
+                self.flag = self.flags.FINDB
+
+
     def chooseMove(self):
         """
         Overridden function.
@@ -332,77 +403,16 @@ class Player(base_player.BasePlayer):
         """
         decMv = (-1, -1)
 
-        if self.flag == self.flags.KILLA:
-            assert self.hit_regions and len(self.hit_regions) == 1 and self.hit_regions[0]
-            returning_shape, points = self.calcHitProbabilities(self.hit_regions[0])
-            if points:
-                max_score = max(points.itervalues())
-                poss_moves = [x for x, score in points.iteritems() if score == max_score]
-                decMv = random.choice(poss_moves)
-            elif returning_shape:
-                del self.shapes[returning_shape]
-                self.flag = self.flags.FINDA
-                self.hit_regions[0] = set()
-            else:
-                self.panicInit()
+        flagdict = {
+            self.flags.KILLA: self.killA,
+            self.flags.KILLB: self.killB,
+            self.flags.FINDA: self.find,
+            self.flags.FINDB: self.find,
+            self.flags.PANIC: self.panic,
+        }
 
-        if self.flag == self.flags.FINDA or self.flag == self.flags.FINDB:
-            points = self.calcPossibilities()
-            if points:
-                max_score = max(points.itervalues())
-                poss_moves = [x for x, score in points.iteritems() if score == max_score]
-                decMv = random.choice(poss_moves)
-            else:
-                self.panicInit()
-
-        try:
-
-            if self.flag == self.flags.PANIC:
-                assert self.hit_regions and self.hit_regions[0]
-                # :(
-                covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
-                for cx, cy in covered:
-                    if self._opponenBoard[cx][cy] != const.EMPTY:
-                        continue
-
-                    for adj_cell in self.circleCell((cx, cy)):
-                        if adj_cell in self.hit_regions[0]:
-                            decMv = (cx, cy)
-                            break
-                    if self.isValidCell(decMv):
-                        break
-                else:
-                    for region in self.hit_regions:
-                        region -= covered
-                    while self.hit_regions and not self.hit_regions[0]:
-                        self.hit_regions = self.hit_regions[1:]
-                    self.shapes = rem_ships
-                    if not self.hit_regions:
-                        self.flag = self.flags.FINDB
-
-            if self.flag == self.flags.KILLB:
-                assert self.hit_regions and self.hit_regions[0]
-
-                covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
-                for cx, cy in covered:
-                    if self._opponenBoard[cx][cy] != const.EMPTY:
-                        continue
-
-                    for adj_cell in self.circleCell((cx, cy)):
-                        if adj_cell in self.hit_regions[0]:
-                            decMv = (cx, cy)
-                            break
-                    if self.isValidCell(decMv):
-                        break
-                else:
-                    self.flag = self.flags.FINDB
-                    self.hit_regions = []
-        except:
-            print "\jlflkjdflkj"
-            screen = turtle.getscreen()
-            filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
-            screen.getcanvas().postscript(file=filename)
-            raw_input()
+        while not decMv or not self.isValidCell(decMv):
+            decMv = flagdict[self.flag]()
 
         # Failing that, get a random cell (in a diagonal pattern)
         count = 0
