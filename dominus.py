@@ -2,6 +2,9 @@ import collections
 import copy
 import itertools
 import random
+import turtle
+from Tkinter import *
+import datetime
 
 import const
 import base_player
@@ -228,7 +231,7 @@ class Player(base_player.BasePlayer):
                 if not self.isValidShip(ship):
                     continue
                 for cx, cy in ship:
-                    if self._opponenBoard[cx][cy] not in [const.EMPTY, const.HIT]:
+                    if (cx, cy) not in hit_region and self._opponenBoard[cx][cy] != const.EMPTY:
                         break
                 else:
                     if hit_region <= set(ship):
@@ -236,9 +239,13 @@ class Player(base_player.BasePlayer):
                             returning_shape = self.getShipType(ship)
                         for c in ship:
                             if self._opponenBoard[c[0]][c[1]] == const.EMPTY:
-                                returning_shape = None
-                                found_shape = False
-                                points[c] += 1
+                                for adj_x, adj_y in self.circleCell(c):
+                                    if (self.isValidCell((adj_x, adj_y)) and
+                                            self._opponenBoard[adj_x][adj_y] == const.HIT):
+                                        returning_shape = None
+                                        found_shape = False
+                                        points[c] += 1
+                                        break
 
         return returning_shape, points
 
