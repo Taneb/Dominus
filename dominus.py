@@ -151,6 +151,10 @@ class Player(base_player.BasePlayer):
         for coord in shape:
             rotFact = self.getRotationFactor(rotation, coord)
             actual = (rotFact[0] + base[0], rotFact[1] + base[1])
+
+            # Most likely positions for ships
+            if count < 100 and actual in [(8, 4), (5, 2), (8, 8), (3, 3), (9, 6)]:
+                return False
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
@@ -389,10 +393,6 @@ class Player(base_player.BasePlayer):
             self.panicInit()
             self.shapes = collections.OrderedDict(reversed(self.shapes.items()))
             return (-1, -1)
-        #    screen = turtle.getscreen()
-         #   filename = "nonetype-{}.eps".format(datetime.datetime.utcnow().isoformat())
-         #   screen.getcanvas().postscript(file=filename)
-         #   raw_input()
         for cx, cy in covered:
             if self._opponenBoard[cx][cy] != const.EMPTY:
                 continue
