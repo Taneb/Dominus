@@ -152,15 +152,14 @@ class Player(base_player.BasePlayer):
             rotFact = self.getRotationFactor(rotation, coord)
             actual = (rotFact[0] + base[0], rotFact[1] + base[1])
 
-            # Most likely positions for ships
-            if count < 100 and actual in [(8, 4), (5, 2), (8, 8), (3, 3), (9, 6)]:
-                return False
             success = True
             success = success and self.isValidCell(actual)
             success = success and self._playerBoard[actual[0]][actual[1]] == const.EMPTY
             if not success: return False
 
-            if not self.space_apart: return True
+            # Most likely positions for ships
+            if count < 100 and actual in [(8, 4), (5, 2), (8, 8), (3, 3), (9, 6)]:
+                return False
 
             # Try not to connect ships together
             for cell in self.circleCell(actual):
@@ -169,7 +168,7 @@ class Player(base_player.BasePlayer):
                                        self._playerBoard[cell[0]][cell[1]] == const.EMPTY)
 
             # Don't bother trying to separate ships if it's too hard
-            if not success and count < 200: return False
+            if self.space_apart and not success and count < 200: return False
 
             successful.append(actual)
         for coord in successful:
@@ -189,6 +188,12 @@ class Player(base_player.BasePlayer):
                     break
                 count += 1
 
+        # Sanity check
+        count = 0
+        for cx, cy in self.allCells():
+            if self._playerBoard[cx][cy] == const.OCCUPIED:
+                count += 1
+        assert count == 21
         return self._playerBoard
 
     def newRound(self):
