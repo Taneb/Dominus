@@ -332,7 +332,6 @@ class Player(base_player.BasePlayer):
                             saved_result = ret_val
         return saved_result
 
-
     def killA(self):
         assert self.hit_regions and len(self.hit_regions) == 1 and self.hit_regions[0]
         returning_shape, points = self.calcHitProbabilities(self.hit_regions[0])
@@ -347,12 +346,12 @@ class Player(base_player.BasePlayer):
         else:
             self.panicInit()
 
-
     def killB(self):
         assert self.hit_regions and self.hit_regions[0]
 
         try:
             covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+            self.has_reversed = False
         except:
             if self.has_reversed:
                 self.flag = self.flags.FLOOD
@@ -374,22 +373,12 @@ class Player(base_player.BasePlayer):
             self.flag = self.flags.FINDB
             self.hit_regions = []
 
-
-    def find(self):
-        points = self.calcPossibilities()
-        if points:
-            max_score = max(points.itervalues())
-            poss_moves = [x for x, score in points.iteritems() if score == max_score]
-            return random.choice(poss_moves)
-        else:
-            self.panicInit()
-
-
     def panic(self):
         assert self.hit_regions and self.hit_regions[0]
         # :(
         try:
             covered, rem_ships, _ = self.panicAttack(set(), self.hit_regions[0], self.shapes)
+            self.has_reversed = False
         except:
             if self.has_reversed:
                 self.flag = self.flags.FLOOD
@@ -420,6 +409,14 @@ class Player(base_player.BasePlayer):
             if not self.hit_regions:
                 self.flag = self.flags.FINDB
 
+    def find(self):
+        points = self.calcPossibilities()
+        if points:
+            max_score = max(points.itervalues())
+            poss_moves = [x for x, score in points.iteritems() if score == max_score]
+            return random.choice(poss_moves)
+        else:
+            self.panicInit()
 
     def flood(self):
         for cx, cy in self.allCells():
@@ -430,7 +427,6 @@ class Player(base_player.BasePlayer):
                 if self.isValidCell((adj_x, adj_y)) and self._opponenBoard[adj_x][adj_y] == const.EMPTY:
                     return (adj_x, adj_y)
         return 27
-
 
     def chooseMove(self):
         """
